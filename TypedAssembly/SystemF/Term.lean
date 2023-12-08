@@ -1,21 +1,22 @@
 import «TypedAssembly».SystemF.Typ
 
-inductive Ctx : Nat → Type where
-  | nil : Ctx n
-  | snoc_kind : Ctx n → Ctx (n + 1)
-  | snoc_typ : Ctx n → n ⊢⋆ → Ctx n
+inductive Ctx : Ctxt → Type where
+  | nil       : Ctx Ø
+  | snoc_kind : Ctx Δ → ∀ j, Ctx (Δ ,⋆ j)
+  | snoc_typ  : Ctx Δ → Δ ⊢⋆ ⋆ → Ctx Δ
 
 namespace Ctx
-  infixl:50 " ‘ " => Ctx.snoc_typ
+  infixl:50 " ,, " => Ctx.snoc_typ
+  infixl:50 " ,,⋆ " => Ctx.snoc_kind
   notation "∅" => Ctx.nil
 end Ctx
 open Ctx
 
-inductive Lookup : Ctx n → n ⊢⋆ → Type where
-  | here  {Γ : Ctx n} {t : n ⊢⋆} : Lookup (Γ ‘ t) t
-  | there {Γ : Ctx n} {t : n ⊢⋆} : Lookup Γ t → Lookup (Γ ‘ t') t
-  | move  {Γ : Ctx n} {t : n ⊢⋆} : Lookup Γ t →
-                                   Lookup Γ.snoc_kind (liftTT 0 t)
+inductive Lookup : Ctx Δ → Δ ⊢⋆ ⋆ → Type where
+  | here  {Γ : Ctx Δ} {t : Δ ⊢⋆ ⋆}     : Lookup (Γ ,, t) t
+  | there {Γ : Ctx Δ} {t₁ t₂ : Δ ⊢⋆ ⋆} : Lookup Γ t₁ → Lookup (Γ ,, t₂) t₁
+  | move  {Γ : Ctx Δ} {t : Δ ⊢⋆ ⋆} {k} : Lookup Γ t →
+                                   Lookup (Γ ,,⋆ k) (weakent t)
 deriving Repr
 
 namespace Lookup
@@ -29,26 +30,25 @@ inductive Prim where
   | times
   deriving Repr, BEq, DecidableEq
 
-inductive Term : (n : Nat) → Ctx n → Typ n → Type where
-  | int  {Γ : Ctx n} : Int → Term n Γ .int
-  | var  {Γ : Ctx n} {t : n⊢⋆} : Γ ∋ t → Term n Γ t
+inductive Term : {Δ : Ctxt} → Ctx Δ → Δ ⊢⋆ ⋆ → Type where
+  | int  {Γ : Ctx Δ} : Int → Term Γ .int
+  | var  {Γ : Ctx Δ} {t : Δ ⊢⋆ ⋆} : Γ ∋ t → Term Γ t
 
-  | fix  {Γ : Ctx n} {t₁ t₂ : n⊢⋆} : Term n (Γ ‘ t₁ ‘ ⋆⟪ !t₁ → !t₂ ⟫) t₂ → Term n Γ ⋆⟪ !t₁ → !t₂ ⟫
-  | app  {Γ : Ctx n} {t₁ t₂ : n⊢⋆} : Term n Γ ⋆⟪ !t₁ → !t₂ ⟫ → Term n Γ t₁ → Term n Γ t₂
+  | fix  {Γ : Ctx Δ} {t₁ t₂ : Δ ⊢⋆ ⋆} : Term (Γ ,, t₁ ,, ⋆⟪ !t₁ → !t₂ ⟫) t₂ → Term Γ ⋆⟪ !t₁ → !t₂ ⟫
+  | app  {Γ : Ctx Δ} {t₁ t₂ : Δ ⊢⋆ ⋆} : Term Γ ⋆⟪ !t₁ → !t₂ ⟫ → Term Γ t₁ → Term Γ t₂
 
-  | Λ    {Γ : Ctx n} {t  : (n + 1)⊢⋆} : Term (n + 1) Γ.snoc_kind t → Term n Γ ⋆⟪ ∀. !t ⟫
-  | sub  {Γ : Ctx n} {t' : (n + 1)⊢⋆} : Term n Γ ⋆⟪ ∀. !t' ⟫ → (t : n ⊢⋆) →
-                                        Term n Γ (substTT 0 t t')
+  | Λ    {Γ : Ctx Δ} {k} {t : Δ ,⋆ k ⊢⋆ ⋆} : Term (Γ ,,⋆ k) t → Term Γ ⋆⟪ ∀. !t ⟫
+  | sub  {Γ : Ctx Δ} {k} {t₁ : Δ ,⋆ k ⊢⋆ ⋆} : Term Γ ⋆⟪ ∀. !t₁ ⟫ → (t₂ : Δ ⊢⋆ k) → Term Γ (t₁[t₂]⋆)
 
-  | prim {Γ : Ctx n} : Term n Γ .int → Prim → Term n Γ .int → Term n Γ .int
-  | pair {Γ : Ctx n} : Term n Γ t₁ → Term n Γ t₂ → Term n Γ ⋆⟪ !t₁ × !t₂ ⟫
-  | fst  {Γ : Ctx n} : Term n Γ ⋆⟪ !t₁ × !t₂ ⟫ → Term n Γ t₁
-  | snd  {Γ : Ctx n} : Term n Γ ⋆⟪ !t₁ × !t₂ ⟫ → Term n Γ t₂
-  | if0  {Γ : Ctx n} {t : n⊢⋆} : Term n Γ .int → Term n Γ t → Term n Γ t → Term n Γ t
+  | prim {Γ : Ctx Δ} : Term Γ .int → Prim → Term Γ .int → Term Γ .int
+  | pair {Γ : Ctx Δ} : Term Γ t₁ → Term Γ t₂ → Term Γ ⋆⟪ !t₁ × !t₂ ⟫
+  | fst  {Γ : Ctx Δ} : Term Γ ⋆⟪ !t₁ × !t₂ ⟫ → Term Γ t₁
+  | snd  {Γ : Ctx Δ} : Term Γ ⋆⟪ !t₁ × !t₂ ⟫ → Term Γ t₂
+  | if0  {Γ : Ctx Δ} {t : Δ ⊢⋆ ⋆} : Term Γ .int → Term Γ t → Term Γ t → Term Γ t
   deriving Repr
 
 namespace Term 
-  notation:10 Δ " ∣ " Γ " ⊢ " t => Term Δ Γ t
+  notation:10 Γ " ⊢ " t => Term Γ t
 
   syntax "get_elem'" (ppSpace term) : tactic
   macro_rules | `(tactic| get_elem' $n) => match n.1.toNat with
@@ -57,8 +57,8 @@ namespace Term
 
   macro "# " n:term:90 : term => `(Term.var (by get_elem' $n))
 
-  example : 0 ∣ (∅ ‘ (@Typ.arrow 0 .int .int) ‘ (@Typ.int 0)) ⊢ ⋆⟪ int ⟫ := #0
-  example : 0 ∣ (∅ ‘ (@Typ.arrow 0 .int .int) ‘ (@Typ.int 0)) ⊢ ⋆⟪ int → int ⟫ := #1
+  example : (∅ ,, ⋆⟪ int → int ⟫ ,, .int) ⊢ ⋆⟪ int ⟫ := #0
+  example : (∅ ,, ⋆⟪ int → int ⟫ ,, .int) ⊢ ⋆⟪ int → int ⟫ := #1
   
   declare_syntax_cat trm
   syntax "!" term:max : trm
@@ -101,12 +101,12 @@ namespace Term
 end Term
 open Term
 
-def fact : 0 ∣ ∅ ⊢ ⋆⟪ int → int ⟫ :=
+def fact :  ∅ ⊢ ⋆⟪ int → int ⟫ :=
   Term.fix (.if0 (.var (.there .here))
             (.int 1)
             (.prim (.var (.there .here)) .times (.app (.var .here) (Term.prim (.var (.there .here)) .minus (.int 1)))))
 
-def fact' : 0 ∣ ∅ ⊢ ⋆⟪ int → int ⟫ := 
+def fact' : ∅ ⊢ ⋆⟪ int → int ⟫ := 
   ⟪ λ. if0 #1 then
          1
        else
@@ -117,9 +117,10 @@ theorem fact_eq_fact' : fact = fact' := rfl
 
 def sixfact := ⟪ !fact 6 ⟫
 
-def freeid : 1 ∣ ∅.snoc_kind ⊢ ⋆⟪ ♯0 → ♯0 ⟫ :=
+def freeid : (∅ ,,⋆ ⋆) ⊢ ⋆⟪ ♯0 → ♯0 ⟫ :=
   ⟪ λ. #1 ⟫
 
-def intid : 0 ∣ ∅ ⊢ ⋆⟪ int → int ⟫ :=
+def intid : ∅ ⊢ ⋆⟪ int → int ⟫ :=
   ⟪ (Λ. !freeid)[int] ⟫
+
 
