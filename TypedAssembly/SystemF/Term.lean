@@ -1,4 +1,5 @@
 import «TypedAssembly».SystemF.Typ
+import «TypedAssembly».SystemF.Prim
 
 inductive Ctx : Ctxt → Type where
   | nil       : Ctx Ø
@@ -16,7 +17,7 @@ inductive Lookup : Ctx Δ → Δ ⊢⋆ ⋆ → Type where
   | here  {Γ : Ctx Δ} {t : Δ ⊢⋆ ⋆}     : Lookup (Γ ,, t) t
   | there {Γ : Ctx Δ} {t₁ t₂ : Δ ⊢⋆ ⋆} : Lookup Γ t₁ → Lookup (Γ ,, t₂) t₁
   | move  {Γ : Ctx Δ} {t : Δ ⊢⋆ ⋆} {k} : Lookup Γ t →
-                                   Lookup (Γ ,,⋆ k) (weakent t)
+                                         Lookup (Γ ,,⋆ k) (weakent t)
 deriving Repr
 
 namespace Lookup
@@ -24,11 +25,6 @@ namespace Lookup
 end Lookup
 open Lookup
 
-inductive Prim where
-  | plus
-  | minus
-  | times
-  deriving Repr, BEq, DecidableEq
 
 inductive Term : {Δ : Ctxt} → Ctx Δ → Δ ⊢⋆ ⋆ → Type where
   | int  {Γ : Ctx Δ} : Int → Term Γ .int
@@ -48,7 +44,7 @@ inductive Term : {Δ : Ctxt} → Ctx Δ → Δ ⊢⋆ ⋆ → Type where
   deriving Repr
 
 namespace Term 
-  notation:10 Γ " ⊢ " t => Term Γ t
+  notation:50 Γ " ⊢ " t => Term Γ t
 
   syntax "get_elem'" (ppSpace term) : tactic
   macro_rules | `(tactic| get_elem' $n) => match n.1.toNat with
@@ -123,4 +119,6 @@ def freeid : (∅ ,,⋆ ⋆) ⊢ ⋆⟪ ♯0 → ♯0 ⟫ :=
 def intid : ∅ ⊢ ⋆⟪ int → int ⟫ :=
   ⟪ (Λ. !freeid)[int] ⟫
 
+def conv_ent {Δ Γ} {t₁ t₂ : Δ ⊢⋆ ⋆} : t₁ = t₂ → (Γ ⊢ t₁) → Γ ⊢ t₂
+  | rfl, a => a
 

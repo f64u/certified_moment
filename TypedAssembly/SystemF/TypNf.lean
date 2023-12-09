@@ -320,3 +320,7 @@ theorem subst_subst_nf_one : ∀ {Δ₁ Δ₂ k} (st : SubstNf Δ₁ Δ₂) (t�
                               subst_nf st (t₂[t₁]nf⋆) =
                               (eval (subst (liftst (emb_nf ∘ st)) (emb_nf t₂)) (lifte (id_env Δ₂)))[subst_nf st t₁]nf⋆ := by
     admit
+
+
+theorem weakent_subst_nf_one : ∀ {Δ k} (t₁ : Δ ⊢nf⋆ k) (t₂ : Δ ⊢nf⋆ ⋆),
+                               t₂ = (weakent_nf t₂)[t₁]nf⋆ := by admit
