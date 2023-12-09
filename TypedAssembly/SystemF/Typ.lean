@@ -1,7 +1,6 @@
 import «TypedAssembly».SystemF.Kind
 import «TypedAssembly».SystemF.TypEnv
 
-
 inductive Typ   : Ctxt → Kind → Type where
   | var {j}     : Δ ∋⋆ j → Typ Δ j
   | int         : Typ Δ ⋆
@@ -256,18 +255,6 @@ theorem weakent_subst : ∀ {Δ₁ Δ₂} (st : Subst Δ₁ Δ₂) {k} (t : Δ�
       rfl
     · rfl
     ·  -/
-
-      
-
-      
-      
-      
-
-
-      
-      
-    /- · simp_all!
-      simp [weakent, rent] -/
 
 theorem subst_comp : ∀ {Δ₁ Δ₂ Δ₃} {st₁ : Subst Δ₁ Δ₂} {st₂ : Subst Δ₂ Δ₃} {j} (t : Δ₁ ⊢⋆ j),
                subst (subst st₂ ∘ st₁) t = subst st₂ (subst st₁ t) := by

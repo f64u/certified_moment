@@ -1,5 +1,11 @@
 import «TypedAssembly».SystemF.Typ
 
+-- This is file shows a normalized version of the typs outlined `Typ.lean`
+-- I tried getting away with not having to do that and not follow the Chapman paper
+-- since I thought my types (i.e. the types in the Morrisett paper) do not compute,
+-- but then I got stuck, so I added them. I still believe they're not strictly helping, 
+-- I had fun writing the stability proof.
+
 inductive TypNe : Ctxt → Kind → Type where
   | var : Δ ∋⋆ j → TypNe Δ j
   deriving BEq, DecidableEq, Repr
