@@ -13,7 +13,7 @@ namespace Typ
   syntax "♯" term : term
   syntax "get_elem" (ppSpace term) : tactic
   macro_rules | `(tactic| get_elem $n) => match n.1.toNat with
-  | 0 => `(tactic | exact Lookupt.here)
+  | 0 => `(tactic| exact Lookupt.here)
   | n+1 => `(tactic| apply Lookupt.there; get_elem $(Lean.quote n))
 
   declare_syntax_cat typ
@@ -38,7 +38,6 @@ namespace Typ
 
   example : Ø ,⋆ ⋆ ,⋆ ⋆ ,⋆ ⋆ ⊢⋆ ⋆ := ⋆⟪ ♯2 ⟫
   def polyidt : Δ ⊢⋆ ⋆ := ⋆⟪ ∀. ♯0 → ♯0 ⟫
-
 end Typ
 open Typ
 
@@ -100,19 +99,10 @@ theorem renτ_id : ∀ {Δ j} {t : Δ ⊢⋆ j}, renτ id t = t := by
 theorem renτ_comp : ∀ {Δ₁ Δ₂ Δ₃} {rt₁ : Renτ Δ₁ Δ₂} {rt₂ : Renτ Δ₂ Δ₃} {j} {t : Δ₁ ⊢⋆ j},
                     renτ (rt₂ ∘ rt₁) t = renτ rt₂ (renτ rt₁ t) := by
   intros Δ₁ Δ₂ Δ₃ rt₁ rt₂ j t
-  induction t generalizing Δ₂ Δ₃ rt₂ <;> try rfl
+  induction t generalizing Δ₂ Δ₃ rt₂ <;> simp_all!
 
-  case arrow Δ' t₁ t₂ t₁_ih t₂_ih =>
-    simp [renτ]
-    constructor <;> simp_all! <;> assumption
-
-  case prod Δ' t₁ t₂ t₁_ih t₂_ih =>
-    simp [renτ]
-    constructor <;> simp_all! <;> assumption
 
   case for_all Δ' k t' t'_ih =>
-    simp [renτ]
-    
     have : (fun {j} =>
       @liftτ Δ' Δ₃
         (fun {j : Kind} => rt₂ ∘ rt₁) k j) = (fun {j} => liftτ rt₂ ∘ liftτ rt₁) := by 
@@ -144,7 +134,7 @@ theorem weakenτ_renτ : ∀ {Δ₁ Δ₂} (rt : Renτ Δ₁ Δ₂) {k} (t : Δ�
     rw [←renτ_comp] at *
     rw [←renτ_comp] at *
     congr
-    funext j'' x
+    funext _ x
     cases x <;> rfl
 
 /-- A Subsτ Δ₁ Δ₂ is a function that maps typ variables to typs -/
@@ -194,19 +184,8 @@ theorem subsτ_renτ : ∀ {Δ₁ Δ₂ Δ₃} (rt : Renτ Δ₁ Δ₂) (st : Su
                         {j} (t : Δ₁ ⊢⋆ j),
                         subsτ (st ∘ rt) t = subsτ st (renτ rt t) := by
   intros Δ₁ Δ₂ Δ₃ rt st j t
-  induction t generalizing Δ₂ Δ₃ with try rfl
-  | arrow t₁ t₂ t₁_ih t₂_ih =>
-    simp [subsτ] 
-    constructor
-    · apply t₁_ih
-    · apply t₂_ih
-  | prod t₁ t₂ t₁_ih t₂_ih =>
-    simp [subsτ] 
-    constructor
-    · apply t₁_ih
-    · apply t₂_ih
+  induction t generalizing Δ₂ Δ₃ with simp_all!
   | for_all t' t'_ih =>
-    simp [subsτ]
     rw [←t'_ih]
     congr
     funext _ x
@@ -268,17 +247,9 @@ theorem liftsτ_comp : ∀ {Δ₁ Δ₂ Δ₃} (st₁ : Subsτ Δ₁ Δ₂) (st�
 
 theorem subsτ_id : ∀ {Δ j} (t : Δ ⊢⋆ j), subsτ .var t = t := by
   intros Δ j t 
-  induction t <;> 
-    try rfl 
-
-  case arrow =>
-    simp_all!
-
-  case prod =>
-    simp_all!
+  induction t <;> simp_all!
 
   case for_all Δ' k t' t'_ih =>
-    simp_all!
     have : (fun {j} => @liftsτ Δ' Δ' Typ.var k j) = (fun {j} => @Typ.var (Δ' ,⋆ k) j) := by
           funext _ t
           cases t <;> rfl
@@ -291,22 +262,9 @@ theorem subsτ_var : ∀ {Δ₁ Δ₂} {st : Subsτ Δ₁ Δ₂} {j} (x : Δ₁ 
 theorem subsτ_comp : ∀ {Δ₁ Δ₂ Δ₃} {st₁ : Subsτ Δ₁ Δ₂} {st₂ : Subsτ Δ₂ Δ₃} {j} (t : Δ₁ ⊢⋆ j),
                subsτ (subsτ st₂ ∘ st₁) t = subsτ st₂ (subsτ st₁ t) := by
   intros Δ₁ Δ₂ Δ₃ st₁ st₂ j t
-  induction t generalizing Δ₂ Δ₃ <;> try rfl 
-
-  case arrow Δ' t₁ t₂ t₁_ih t₂_ih =>
-    simp [subsτ]
-    constructor 
-    · apply t₁_ih
-    · apply t₂_ih
-
-  case prod Δ' t₁ t₂ t₁_ih t₂_ih =>
-    simp [subsτ]
-    constructor 
-    · apply t₁_ih
-    · apply t₂_ih
+  induction t generalizing Δ₂ Δ₃ <;> simp_all!
    
   case for_all Δ' j' t' t'_ih =>
-    simp [subsτ]
     have : (fun {j} => @liftsτ Δ' Δ₃ (fun {j} => (subsτ fun {j} => st₂) ∘ st₁) j' j) = (fun {j} => subsτ (liftsτ st₂) ∘ liftsτ st₁) := by 
       funext _ x
       apply liftsτ_comp
@@ -337,6 +295,6 @@ theorem subsτ_subsτ_one : ∀ {Δ₁ Δ₂ k} (st : Subsτ Δ₁ Δ₂) (t₁ 
     simp [extendτ, liftsτ, weakenτ, subsτ]
     rw [←subsτ_renτ]
     have : (fun {j} => extendτ (fun {j} => var) (subsτ (fun {j} => st) t₁) ∘ Lookupt.there) = fun {j} => @Typ.var Δ₂ j := by
-      funext j x
+      funext _ x
       cases x <;> rfl
     rw [this, subsτ_id]

@@ -12,7 +12,9 @@ inductive Step : {Δ : Ctxt} → {Γ : Ctx Δ} → {t : Δ ⊢⋆ ⋆} → (Γ �
   | app_left   : Step a a' → Step (.app a e) (.app a' e)
   
   | Λ_steps    : Step e e' → Step (.Λ e) (.Λ e')
-  | sub_exec   : Step (.sub (.Λ e) t) (e⋆[t])
+
+  | sub_exec   : Value e → Step (.sub (.Λ e) t) (e⋆[t])
+  | sub_steps  : Step e e' → Step (.sub e t) (.sub e' t)
 
   | prim_exec  : Step (.prim (.int n₁) p (.int n₂)) (.int (interp p n₁ n₂))
   | prim_right : Step b b' → Step (.prim (.int n) p b) (.prim (.int n) p b')
@@ -129,6 +131,7 @@ example : ⟪ !intid 6 ⟫ ==>* ⟪ 6 ⟫ := by
   constructor
   · apply Step.app_left
     apply Step.sub_exec
+    constructor
   constructor 
   · apply Step.app_exec
     constructor
