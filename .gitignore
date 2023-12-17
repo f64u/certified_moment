@@ -3,6 +3,8 @@
 /lake-packages/*
 .lake/*
 
+.DS_STORE
+
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof

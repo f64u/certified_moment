@@ -1,5 +1,7 @@
 import «TypedAssembly».SystemF.Kind
 
+/-- This is essentially a Nat, since we do not gain
+    information by cons'ing a specific Kind (they're all ⋆) -/
 inductive Ctxt where
   | nil 
   | cons : Ctxt → Kind → Ctxt
@@ -11,9 +13,9 @@ namespace Ctxt
 end Ctxt
 open Ctxt
 
-
+/-- This is essentially Fin2 in Lean, for the same reason above --/
 inductive Lookupt : Ctxt → Kind → Type where
-  | here {Δ j} : Lookupt (Δ ,⋆ j) j
+  | here  {Δ j}   : Lookupt (Δ ,⋆ j) j
   | there {Δ j k} : Lookupt Δ j → Lookupt (Δ ,⋆ k) j
   deriving BEq, DecidableEq, Repr
 

@@ -1,4 +1,3 @@
-import «TypedAssembly».SystemF.Kind
 import «TypedAssembly».SystemF.TypEnv
 
 inductive Typ   : Ctxt → Kind → Type where
@@ -43,146 +42,231 @@ namespace Typ
 end Typ
 open Typ
 
-/-- A Ren⋆ Δ₁ Δ₂ is a funciton that takes a typ variable and moves it
-    from the first typing context to the second --/
+/-- A Renτ Δ₁ Δ₂ is a a function that transforms a typ variable. -/
 @[reducible]
-def Rent (Δ₁ Δ₂ : Ctxt) : Type :=
+def Renτ (Δ₁ Δ₂ : Ctxt) : Type :=
   ∀ {j}, (Δ₁ ∋⋆ j) → (Δ₂ ∋⋆ j)
 
-/-- lift⋆ takes a Ren⋆ and returns a different Ren⋆ that does not alter the first variable
-    but all other variables are further shifted right and have the Ren⋆ applied to the shifted-left version of them.
-    This transformation is helpful for renaming under the binders (namely ∀.) -/
-def liftt {Δ₁ Δ₂} : Rent Δ₁ Δ₂ → ∀ {k}, Rent (Δ₁ ,⋆ k) (Δ₂ ,⋆ k)
+/-- liftτ takes a Renτ and returns a different Renτ that does not
+    alter the first variable but all other variables are further
+    shifted right and have the Renτ applied to the shifted-left
+    version of them.
+
+    This transformation is helpful for renaming
+    under the binders (namely ∀.) -/
+def liftτ {Δ₁ Δ₂} : Renτ Δ₁ Δ₂ → ∀ {k},  Renτ (Δ₁ ,⋆ k) (Δ₂ ,⋆ k)
   |  _, _, _, .here => .here
   | rt, _, _, .there a => .there (rt a)
  
-/-- ren⋆ takes a Ren⋆ and a typ and applies it to that typ, moving it to the
-    new context -/
- def rent {Δ₁ Δ₂} : Rent Δ₁ Δ₂ → ∀ {k}, Δ₁ ⊢⋆ k → Δ₂ ⊢⋆ k 
+/-- renτ takes a Renτ and a typ and applies it to that typ,
+    essentially moving it from one typing ctxt to another. -/
+ def renτ {Δ₁ Δ₂} : Renτ Δ₁ Δ₂ → ∀ {k}, Δ₁ ⊢⋆ k → Δ₂ ⊢⋆ k 
   |  _, _, .int => .int
   | rt, _, .var a => .var (rt a)
-  | rt, _, .arrow t₁ t₂ => .arrow (rent rt t₁) (rent rt t₂)
-  | rt, _, .prod t₁ t₂ => .prod (rent rt t₁) (rent rt t₂)
-  | rt, _, .for_all t => .for_all (rent (liftt rt) t)
+  | rt, _, .arrow t₁ t₂ => .arrow (renτ rt t₁) (renτ rt t₂)
+  | rt, _, .prod t₁ t₂ => .prod (renτ rt t₁) (renτ rt t₂)
+  | rt, _, .for_all t => .for_all (renτ (liftτ rt) t)
 
-/-- weaken⋆ takes a typ and returns a typ where all 
+/-- weakenτ takes a typ and returns a typ where all 
     free typ variables in that typ have been shifted right by 1 position -/
-def weakent {Δ j k} : Δ ⊢⋆ j → Δ ,⋆ k ⊢⋆ j := rent .there
+def weakenτ {Δ j k} : Δ ⊢⋆ j → Δ ,⋆ k ⊢⋆ j := renτ .there
 
-theorem liftt_id : ∀ {Δ j k} {a : Δ ,⋆ k ∋⋆ j}, liftt id a = a := by
+theorem liftτ_id : ∀ {Δ j k} {a : Δ ,⋆ k ∋⋆ j}, liftτ id a = a := by
   intros Δ j k a
-  cases a <;> simp [liftt]
+  cases a <;> simp [liftτ]
 
-theorem liftt_comp : ∀ {Δ₁ Δ₂ Δ₃} {rt₁ : Rent Δ₁ Δ₂} {rt₂ : Rent Δ₂ Δ₃} {j k} {a : Δ₁ ,⋆ k ∋⋆ j},
-                     liftt (rt₂ ∘ rt₁) a = liftt rt₂ (liftt rt₁ a) := by
+theorem liftτ_comp : ∀ {Δ₁ Δ₂ Δ₃} {rt₁ : Renτ Δ₁ Δ₂} {rt₂ : Renτ Δ₂ Δ₃} {j k} {a : Δ₁ ,⋆ k ∋⋆ j},
+                     liftτ (rt₂ ∘ rt₁) a = liftτ rt₂ (liftτ rt₁ a) := by
   intros Δ₁ Δ₂ Δ₃ rt₁ rt₂ j k a
-  cases a <;> simp [liftt]
+  cases a <;> simp [liftτ]
 
-theorem rent_id : ∀ {Δ j} {t : Δ ⊢⋆ j}, rent id t = t := by
+theorem renτ_id : ∀ {Δ j} {t : Δ ⊢⋆ j}, renτ id t = t := by
   intros Δ j t
-  induction t <;> try rfl
+  induction t <;> simp [renτ]
 
   case arrow Δ' t₁ t₂ t₁_ih t₂_ih =>
-    simp [rent]
     constructor <;> assumption
 
   case prod Δ' t₁ t₂ t₁_ih t₂_ih =>
-    simp [rent]
     constructor <;> assumption
 
   case for_all Δ' j' t' t'_ih =>
-    simp [rent]
-    have : (fun {j} => @liftt Δ' Δ' id j' j) = (fun {j} => @id (Δ' ,⋆ j' ∋⋆ j)) := by
+    have : (fun {j} => @liftτ Δ' Δ' id j' j) = (fun {j} => @id (Δ' ,⋆ j' ∋⋆ j)) := by
       funext j a
-      apply liftt_id
+      apply liftτ_id
     rw [this]
     assumption
 
-theorem rent_comp : ∀ {Δ₁ Δ₂ Δ₃} {rt₁ : Rent Δ₁ Δ₂} {rt₂ : Rent Δ₂ Δ₃} {j} {t : Δ₁ ⊢⋆ j},
-                    rent (rt₂ ∘ rt₁) t = rent rt₂ (rent rt₁ t) := by
+theorem renτ_comp : ∀ {Δ₁ Δ₂ Δ₃} {rt₁ : Renτ Δ₁ Δ₂} {rt₂ : Renτ Δ₂ Δ₃} {j} {t : Δ₁ ⊢⋆ j},
+                    renτ (rt₂ ∘ rt₁) t = renτ rt₂ (renτ rt₁ t) := by
   intros Δ₁ Δ₂ Δ₃ rt₁ rt₂ j t
   induction t generalizing Δ₂ Δ₃ rt₂ <;> try rfl
 
   case arrow Δ' t₁ t₂ t₁_ih t₂_ih =>
-    simp [rent]
+    simp [renτ]
     constructor <;> simp_all! <;> assumption
 
   case prod Δ' t₁ t₂ t₁_ih t₂_ih =>
-    simp [rent]
+    simp [renτ]
     constructor <;> simp_all! <;> assumption
 
   case for_all Δ' k t' t'_ih =>
-    simp [rent]
+    simp [renτ]
     
     have : (fun {j} =>
-      @liftt Δ' Δ₃
-        (fun {j : Kind} => rt₂ ∘ rt₁) k j) = (fun {j} => liftt rt₂ ∘ liftt rt₁) := by 
+      @liftτ Δ' Δ₃
+        (fun {j : Kind} => rt₂ ∘ rt₁) k j) = (fun {j} => liftτ rt₂ ∘ liftτ rt₁) := by 
         funext _ t
-        apply liftt_comp
+        apply liftτ_comp
 
     rw [this]
-    exact (@t'_ih _ _ (liftt rt₁) (liftt rt₂))
+    exact (@t'_ih _ _ (liftτ rt₁) (liftτ rt₂))
 
-theorem weakent_rent : ∀ {Δ₁ Δ₂} (rt : Rent Δ₁ Δ₂) {k} (t : Δ₁ ⊢⋆ k), 
-                        weakent (rent rt t) = rent (liftt rt (k := k)) (weakent t) := by
+theorem weakenτ_renτ : ∀ {Δ₁ Δ₂} (rt : Renτ Δ₁ Δ₂) {k} (t : Δ₁ ⊢⋆ k), 
+                        weakenτ (renτ rt t) = renτ (liftτ rt (k := k)) (weakenτ t) := by
   intros Δ₁ Δ₂ rt k t 
 
-  induction t generalizing Δ₂ <;> try rfl
-
-  case arrow t₁ t₂ t₁_ih t₂_ih =>
-    simp [weakent, rent]
+  induction t generalizing Δ₂ with try rfl
+  | arrow t₁ t₂ t₁_ih t₂_ih =>
+    simp [weakenτ, renτ]
     constructor
     · apply t₁_ih
     · apply t₂_ih
 
-  case prod t₁ t₂ t₁_ih t₂_ih =>
-    simp [weakent, rent]
+  | prod t₁ t₂ t₁_ih t₂_ih =>
+    simp [weakenτ, renτ]
     constructor
     · apply t₁_ih
     · apply t₂_ih
   
-  case for_all =>
-    simp [weakent, rent] at *
-    rw [←rent_comp] at *
-    rw [←rent_comp] at *
+  | for_all =>
+    simp [weakenτ, renτ] at *
+    rw [←renτ_comp] at *
+    rw [←renτ_comp] at *
     congr
     funext j'' x
     cases x <;> rfl
 
-/-- A Subs⋆ Δ₁ Δ₂ is a function that maps typ variables to typs -/
+/-- A Subsτ Δ₁ Δ₂ is a function that maps typ variables to typs -/
 @[reducible]
-def Subst (Δ₁ Δ₂ : Ctxt) : Type :=
+def Subsτ (Δ₁ Δ₂ : Ctxt) : Type :=
   ∀ {j}, Δ₁ ∋⋆ j → Δ₂ ⊢⋆ j
 
-/-- lifts⋆ takes a Subs⋆ and returns a transformed Subs⋆ that does the following:
-      1. The first typ variable is unaffected (the original Subs⋆ is not applied to it)
-      2. All further variables have the Subs⋆ applied to a shift-down version of them,
-         and the but all free typ variables (that were not subs⋆ed) are brought back to their 
+/-- liftsτ takes a Subsτ and returns a transformed Subsτ that does the following:
+      1. The first typ variable is unaffected (no Subsτ is not applied to it)
+      2. All further variables have the Subsτ applied to a shift-down version of them,
+         and the but all free typ variables (that were not subsτed) are brought back to their 
          original position.
     This transformation is helpful for substituting under the binders (namely ∀.) -/
-def liftst {Δ₁ Δ₂} : Subst Δ₁ Δ₂ → ∀ {k}, Subst (Δ₁ ,⋆ k) (Δ₂ ,⋆ k)
-  |  _, _, _, .here => .var .here
-  | st, _, _, .there a => weakent (st a)
+def liftsτ {Δ₁ Δ₂} (st :  Subsτ Δ₁ Δ₂) {k} : Subsτ (Δ₁ ,⋆ k) (Δ₂ ,⋆ k)
+  | _, .here => .var .here
+  | _, .there a => weakenτ (st a)
 
-/-- subs⋆ takes a Subs⋆ and a typ and applies it to the free variables in it -/
-def subst {Δ₁ Δ₂} : Subst Δ₁ Δ₂ → ∀ {j}, Δ₁ ⊢⋆ j → Δ₂ ⊢⋆ j 
+
+/-- subsτ takes a Subsτ and a typ and applies it to the free variables in it -/
+def subsτ {Δ₁ Δ₂} : Subsτ Δ₁ Δ₂ → ∀ {j}, Δ₁ ⊢⋆ j → Δ₂ ⊢⋆ j 
   |  _, _, .int => .int
   | st, _, .var a => st a
-  | st, _, .arrow t₁ t₂ => .arrow (subst st t₁) (subst st t₂)
-  | st, _, .prod t₁ t₂ => .prod (subst st t₁) (subst st t₂)
-  | st, _, .for_all t => .for_all (subst (liftst st) t)
+  | st, _, .arrow t₁ t₂ => .arrow (subsτ st t₁) (subsτ st t₂)
+  | st, _, .prod t₁ t₂ => .prod (subsτ st t₁) (subsτ st t₂)
+  | st, _, .for_all t => .for_all (subsτ (liftsτ st) t)
 
-/-- extend⋆ is a Subs⋆ that, given a Subs⋆ and a typ, replaces the first free typ var with
+/-- extendτ is a Subsτ that, given a Subsτ and a typ, replaces the first free typ var with
     that typ and applies the the given substitution to a shifted-down version of all further typ vars -/
-def extendt {Δ₁ Δ₂} : Subst Δ₁ Δ₂ → ∀ {k}, (Δ₂ ⊢⋆ k) → Subst (Δ₁ ,⋆ k) Δ₂
+def extendτ {Δ₁ Δ₂} : Subsτ Δ₁ Δ₂ → ∀ {k}, (Δ₂ ⊢⋆ k) → Subsτ (Δ₁ ,⋆ k) Δ₂
   |  _, _, t, _, .here => t
   | st, _, _, _, .there a => st a
 
-macro b:term:80 "[" a:term:80 "]⋆" : term => `(subst (extendt .var $a) $b)
+abbrev subsτ_one {Δ j k} (t₁ : Δ ,⋆ k ⊢⋆ j) (t₂ : Δ ⊢⋆ k) : Δ ⊢⋆ j :=
+  (subsτ (extendτ .var t₂) t₁)
+
+macro b:term:80 "[" a:term:80 "]⋆" : term => `(subsτ_one $b $a)
 
 example : ⋆⟪ ♯0 → ♯0 ⟫[.int]⋆ = (⋆⟪ int → int ⟫ : Typ Ø ⋆) := rfl
 
-theorem subst_id : ∀ {Δ j} (t : Δ ⊢⋆ j), subst .var t = t := by
+theorem liftsτ_liftτ : ∀ {Δ₁ Δ₂ Δ₃} (rt : Renτ Δ₁ Δ₂) (st : Subsτ Δ₂ Δ₃)
+                         {j k} (x : Δ₁ ,⋆ k ∋⋆ j), 
+                         liftsτ (st ∘ rt) x = liftsτ st (liftτ rt x) := by
+  intros Δ₁ Δ₂ Δ₃ rt st j k x
+  cases x <;> rfl
+
+theorem subsτ_renτ : ∀ {Δ₁ Δ₂ Δ₃} (rt : Renτ Δ₁ Δ₂) (st : Subsτ Δ₂ Δ₃)
+                        {j} (t : Δ₁ ⊢⋆ j),
+                        subsτ (st ∘ rt) t = subsτ st (renτ rt t) := by
+  intros Δ₁ Δ₂ Δ₃ rt st j t
+  induction t generalizing Δ₂ Δ₃ with try rfl
+  | arrow t₁ t₂ t₁_ih t₂_ih =>
+    simp [subsτ] 
+    constructor
+    · apply t₁_ih
+    · apply t₂_ih
+  | prod t₁ t₂ t₁_ih t₂_ih =>
+    simp [subsτ] 
+    constructor
+    · apply t₁_ih
+    · apply t₂_ih
+  | for_all t' t'_ih =>
+    simp [subsτ]
+    rw [←t'_ih]
+    congr
+    funext _ x
+    cases x <;> rfl
+
+theorem renτ_liftτ_liftsτ : ∀ {Δ₁ Δ₂ Δ₃} (st : Subsτ Δ₁ Δ₂) (rt : Renτ Δ₂ Δ₃)
+                              {j k} (x : Δ₁ ,⋆ k ∋⋆ j),
+                              liftsτ (renτ rt ∘ st) x = renτ (liftτ rt) (liftsτ st x) := by
+  intros Δ₁ Δ₂ Δ₃ st rt j k x
+  cases x
+  case here => rfl
+  case there x' => 
+    simp [liftsτ, weakenτ]
+    rw [←renτ_comp]
+    rw [←renτ_comp]
+    congr
+
+theorem renτ_subsτ : ∀ {Δ₁ Δ₂ Δ₃} (st : Subsτ Δ₁ Δ₂) (rt : Renτ Δ₂ Δ₃)
+                       {j} (t : Δ₁ ⊢⋆ j),
+                       subsτ (renτ rt ∘ st) t = renτ rt (subsτ st t) := by
+  intros Δ₁ Δ₂ Δ₃ st rt j t
+  induction t generalizing Δ₂ Δ₃ with try rfl
+  | arrow t₁ t₂ t₁_ih t₂_ih =>
+    simp [subsτ, renτ]
+    constructor 
+    · apply t₁_ih
+    · apply t₂_ih
+  | prod t₁ t₂ t₁_ih t₂_ih =>
+    simp [subsτ, renτ]
+    constructor 
+    · apply t₁_ih
+    · apply t₂_ih
+  | for_all t' t'_ih =>
+    simp [subsτ, renτ]
+    rw [←t'_ih]
+    congr
+    funext _ x
+    cases x
+    case here => rfl
+    case there x' =>
+      simp [liftsτ]
+      apply weakenτ_renτ
+
+theorem liftsτ_id : ∀ {Δ j k} (x : Δ ,⋆ j ∋⋆ k), liftsτ .var x = .var x := by 
+  intros Δ j k x
+  cases x <;> rfl
+
+theorem liftsτ_comp : ∀ {Δ₁ Δ₂ Δ₃} (st₁ : Subsτ Δ₁ Δ₂) (st₂ : Subsτ Δ₂ Δ₃)
+                        {j k} (x : Δ₁ ,⋆ k ∋⋆ j),
+                        liftsτ (subsτ st₂ ∘ st₁) x = subsτ (liftsτ st₂) (liftsτ st₁ x) := by
+  intros Δ₁ Δ₂ Δ₃ st₁ st₂ j k x
+  cases x
+  case here => rfl
+  case there x' => 
+    simp [liftsτ, weakenτ]
+    rw [←subsτ_renτ]
+    rw [←renτ_subsτ]
+    congr
+
+theorem subsτ_id : ∀ {Δ j} (t : Δ ⊢⋆ j), subsτ .var t = t := by
   intros Δ j t 
   induction t <;> 
     try rfl 
@@ -195,95 +279,64 @@ theorem subst_id : ∀ {Δ j} (t : Δ ⊢⋆ j), subst .var t = t := by
 
   case for_all Δ' k t' t'_ih =>
     simp_all!
-    have : (fun {j} => @liftst Δ' Δ' Typ.var k j) = (fun {j} => @Typ.var (Δ' ,⋆ k) j) := by
+    have : (fun {j} => @liftsτ Δ' Δ' Typ.var k j) = (fun {j} => @Typ.var (Δ' ,⋆ k) j) := by
           funext _ t
           cases t <;> rfl
     rw [this]
     assumption
 
-theorem subst_var : ∀ {Δ₁ Δ₂} {st : Subst Δ₁ Δ₂} {j} (x : Δ₁ ∋⋆ j), 
-                subst st (.var x) = st x := by intros; rfl
+theorem subsτ_var : ∀ {Δ₁ Δ₂} {st : Subsτ Δ₁ Δ₂} {j} (x : Δ₁ ∋⋆ j), 
+                subsτ st (.var x) = st x := by intros; rfl
 
-theorem weakent_subst : ∀ {Δ₁ Δ₂} (st : Subst Δ₁ Δ₂) {k} (t : Δ₁ ⊢⋆ k),
-                        weakent (subst st t) = subst (liftst st (k := k)) (weakent t) := by 
-  intros Δ₁ Δ₂ st k t 
-
-  induction t generalizing Δ₂ <;> try rfl
-
-  case arrow Δ' t₁ t₂ t₁_ih t₂_ih => 
-    simp [weakent, rent, subst]
-    constructor
-    · apply t₁_ih
-    · apply t₂_ih
-
-  case prod Δ' t₁ t₂ t₁_ih t₂_ih => 
-    simp [weakent, rent, subst]
-    constructor
-    · apply t₁_ih
-    · apply t₂_ih
-
-  case for_all Δ' j' t' t'_ih =>
-    simp [weakent, rent, subst] at *
-    generalize hs : (subst (fun {j} => liftst fun {j} => st) t') = ts
-    admit
-    /- cases ts <;>
-      cases ht' : t' <;> rw [ht'] at hs <;> simp [subst] at hs <;> try contradiction
-    · simp [subst, rent] at *
-      rename_i x x'
-      cases x'
-      · simp [liftst] at hs
-        rw [←hs]
-        rfl
-      · simp [liftst, weakent] at hs 
-        rename_i x''
-        cases hx : st x'' <;>
-          rw [hx] at hs <;> simp [rent] at hs <;> try contradiction
-        rw [←hs]
-        simp [liftt, liftst, weakent]
-        rw [hx]
-        rfl
-    · simp [liftst] at hs 
-      rename_i x
-      cases x <;> try contradiction
-      simp at hs
-      simp [weakent] at hs
-      rename_i x''
-      cases hx : st x'' <;>
-          rw [hx] at hs <;> simp [rent] at hs <;> try contradiction
-      simp [subst, rent, liftt, liftst]
-      rw [hx]
-      rfl
-    · rfl
-    ·  -/
-
-theorem subst_comp : ∀ {Δ₁ Δ₂ Δ₃} {st₁ : Subst Δ₁ Δ₂} {st₂ : Subst Δ₂ Δ₃} {j} (t : Δ₁ ⊢⋆ j),
-               subst (subst st₂ ∘ st₁) t = subst st₂ (subst st₁ t) := by
+theorem subsτ_comp : ∀ {Δ₁ Δ₂ Δ₃} {st₁ : Subsτ Δ₁ Δ₂} {st₂ : Subsτ Δ₂ Δ₃} {j} (t : Δ₁ ⊢⋆ j),
+               subsτ (subsτ st₂ ∘ st₁) t = subsτ st₂ (subsτ st₁ t) := by
   intros Δ₁ Δ₂ Δ₃ st₁ st₂ j t
   induction t generalizing Δ₂ Δ₃ <;> try rfl 
 
   case arrow Δ' t₁ t₂ t₁_ih t₂_ih =>
-    simp [subst]
+    simp [subsτ]
     constructor 
     · apply t₁_ih
     · apply t₂_ih
 
   case prod Δ' t₁ t₂ t₁_ih t₂_ih =>
-    simp [subst]
+    simp [subsτ]
     constructor 
     · apply t₁_ih
     · apply t₂_ih
    
   case for_all Δ' j' t' t'_ih =>
-    simp [subst]
-    /- set_option pp.all true in
-    rfl -/
-    have : (fun {j} => @liftst Δ' Δ₃ (fun {j} => (subst fun {j} => st₂) ∘ st₁) j' j) = (fun {j} => subst (liftst st₂) ∘ liftst st₁) := by 
+    simp [subsτ]
+    have : (fun {j} => @liftsτ Δ' Δ₃ (fun {j} => (subsτ fun {j} => st₂) ∘ st₁) j' j) = (fun {j} => subsτ (liftsτ st₂) ∘ liftsτ st₁) := by 
       funext _ x
-      cases x
-      · simp_all!
-      · simp_all!
-        apply weakent_subst
-      
+      apply liftsτ_comp
+     
     rw [this]
     simp_all!
 
+theorem renτ_subsτ_one : ∀ {Δ₁ Δ₂ j k} (rt : Renτ Δ₁ Δ₂) (t₁ : Δ₁ ,⋆ k ⊢⋆ j) (t₂ : Δ₁ ⊢⋆ k), renτ rt (t₁[t₂]⋆) = (renτ (liftτ rt) t₁)[renτ rt t₂]⋆ := by
+  intros Δ₁ Δ₂ j k rt t₁ t₂
+  simp [subsτ_one]
+  rw [←subsτ_renτ]
+  rw [←renτ_subsτ]
+  congr
+  funext _ x
+  cases x <;> rfl
+
+theorem subsτ_subsτ_one : ∀ {Δ₁ Δ₂ k} (st : Subsτ Δ₁ Δ₂) (t₁ : Δ₁ ⊢⋆ k) (t₂ : Δ₁ ,⋆ k ⊢⋆ ⋆),
+                          subsτ st (t₂[t₁]⋆) = (subsτ (liftsτ st) t₂)[subsτ st t₁]⋆ := by
+  intros Δ₁ Δ₂ k st t₁ t₂
+  simp [subsτ_one]
+  rw [←subsτ_comp]
+  rw [←subsτ_comp]
+  congr
+  funext j x
+  cases x 
+  · rfl
+  · rename_i x'
+    simp [extendτ, liftsτ, weakenτ, subsτ]
+    rw [←subsτ_renτ]
+    have : (fun {j} => extendτ (fun {j} => var) (subsτ (fun {j} => st) t₁) ∘ Lookupt.there) = fun {j} => @Typ.var Δ₂ j := by
+      funext j x
+      cases x <;> rfl
+    rw [this, subsτ_id]
