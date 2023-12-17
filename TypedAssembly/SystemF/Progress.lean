@@ -147,11 +147,9 @@ theorem progress : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢⋆ ⋆} → (e : Γ ⊢
       exists (.snd es)
       constructor; assumption
 
-  | «if0» e₁ e₂ e₃ e₁_ih e₂_ih e₃_ih =>
+  | «if0» e₁ e₂ e₃ e₁_ih =>
     apply Or.inr
     have e₁_ih' := e₁_ih nv; clear e₁_ih
-    have e₂_ih' := e₂_ih nv; clear e₂_ih
-    have e₃_ih' := e₃_ih nv; clear e₃_ih
     cases e₁_ih' with
     | inl hv =>
       cases hv
@@ -163,10 +161,10 @@ theorem progress : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢⋆ ⋆} → (e : Γ ⊢
           constructor
         · exists e₃
           constructor
-          simp_arith
+          simp [OfNat.ofNat]
       · exists e₃ 
         constructor
-        simp_arith
+        simp [OfNat.ofNat]
     | inr hs =>
       cases hs 
       rename_i es s
