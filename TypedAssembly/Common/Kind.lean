@@ -9,3 +9,4 @@ namespace Kind
   notation " ⋆ " => Kind.star
 end Kind
 open Kind
+

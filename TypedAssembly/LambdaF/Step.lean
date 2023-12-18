@@ -1,12 +1,12 @@
 import «TypedAssembly».LambdaF.Term
 
-inductive Value : {Δ : Ctxt} → {Γ : Ctx Δ} → {t : Δ ⊢⋆ ⋆} → (Γ ⊢ t) → Prop where
+inductive Value : {Δ : Ctxt} → {Γ : Ctx Δ} → {t : Δ ⊢F⋆ ⋆} → (Γ ⊢ t) → Prop where
   | v_int : Value (.int i)
   | v_fix : Value (.fix e)
   | v_Λ  : Value e → Value (.Λ e)
   | v_pair : Value e₁ → Value e₂ → Value (.pair e₁ e₂)
 
-inductive Step : {Δ : Ctxt} → {Γ : Ctx Δ} → {t : Δ ⊢⋆ ⋆} → (Γ ⊢ t) → (Γ ⊢ t) → Prop
+inductive Step : {Δ : Ctxt} → {Γ : Ctx Δ} → {t : Δ ⊢F⋆ ⋆} → (Γ ⊢ t) → (Γ ⊢ t) → Prop
   | app_exec   : Value a → Step (.app (.fix e) a) (e.[weaken a].[.fix e])
   | app_right  : Value a → Step b b' → Step (.app a b) (.app a b')
   | app_left   : Step a a' → Step (.app a e) (.app a' e)
@@ -38,7 +38,7 @@ namespace Step
 end Step
 open Step
 
-inductive MultiStep {Δ} {Γ : Ctx Δ} {t : Δ ⊢⋆ ⋆} : (Γ ⊢ t) → (Γ ⊢ t) → Prop 
+inductive MultiStep {Δ} {Γ : Ctx Δ} {t : Δ ⊢F⋆ ⋆} : (Γ ⊢ t) → (Γ ⊢ t) → Prop 
   | refl {a} : MultiStep a a
   | step {a b c} : a ==> b → MultiStep b c → MultiStep a c
 
@@ -55,6 +55,7 @@ example : ⟪ if0 1 then 1 + 1 * 1 else 5 * 1 end ⟫ ==>* (⟪ 5 ⟫ : ∅ ⊢ 
   · intros contra; contradiction
   · repeat constructor
 
+open Examples in
 example : ⟪ !fact 0 ⟫ ==>* ⟪ 1 ⟫ := by
   unfold fact
   apply MultiStep.step
@@ -65,6 +66,7 @@ example : ⟪ !fact 0 ⟫ ==>* ⟪ 1 ⟫ := by
       apply Step.if0_exec
     · apply MultiStep.refl
 
+open Examples in
 example : ⟪ !fact 3 ⟫ ==>* ⟪ 6 ⟫ := by
   unfold fact
   apply MultiStep.step
@@ -125,9 +127,9 @@ example : ⟪ !fact 3 ⟫ ==>* ⟪ 6 ⟫ := by
                       apply Step.if0_exec
                       repeat constructor <;> repeat constructor
 
+open Examples in
 example : ⟪ !intid 6 ⟫ ==>* ⟪ 6 ⟫ := by
   unfold intid
-  unfold freeid
   constructor
   · apply Step.app_left
     apply Step.sub_exec

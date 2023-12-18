@@ -1,4 +1,4 @@
-import «TypedAssembly».LambdaF.Kind
+import «TypedAssembly».Common.Kind
 
 /-- This is essentially a Nat, since we do not gain
     information by cons'ing a specific Kind (they're all ⋆) -/
@@ -21,6 +21,12 @@ inductive Lookupt : Ctxt → Kind → Type where
 
 namespace Lookupt 
   infixl:90 " ∋⋆ " => Lookupt
+
+  syntax "get_elem" (ppSpace term) : tactic
+  macro_rules | `(tactic| get_elem $n) => match n.1.toNat with
+  | 0 => `(tactic| exact Lookupt.here)
+  | n+1 => `(tactic| apply Lookupt.there; get_elem $(Lean.quote n))
+
 end Lookupt
 open Lookupt
 

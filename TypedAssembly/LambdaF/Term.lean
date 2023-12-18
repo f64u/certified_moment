@@ -1,22 +1,22 @@
 import «TypedAssembly».LambdaF.Typ
-import «TypedAssembly».LambdaF.Prim
+import «TypedAssembly».Common.Prim
 import «TypedAssembly».LambdaF.TermEnv
 
-inductive Term : {Δ : Ctxt} → Ctx Δ → Δ ⊢⋆ ⋆ → Type where
+inductive Term : {Δ : Ctxt} → Ctx Δ → Δ ⊢F⋆ ⋆ → Type where
   | int  {Γ : Ctx Δ} : Int → Term Γ .int
-  | var  {Γ : Ctx Δ} {t : Δ ⊢⋆ ⋆} : Γ ∋ t → Term Γ t
+  | var  {Γ : Ctx Δ} {t : Δ ⊢F⋆ ⋆} : Γ ∋ t → Term Γ t
 
-  | fix  {Γ : Ctx Δ} {t₁ t₂ : Δ ⊢⋆ ⋆} : Term (Γ ,, ⋆⟪ !t₁ → !t₂ ⟫ ,, t₁ ) t₂ → Term Γ ⋆⟪ !t₁ → !t₂ ⟫
-  | app  {Γ : Ctx Δ} {t₁ t₂ : Δ ⊢⋆ ⋆} : Term Γ ⋆⟪ !t₁ → !t₂ ⟫ → Term Γ t₁ → Term Γ t₂
+  | fix  {Γ : Ctx Δ} {t₁ t₂ : Δ ⊢F⋆ ⋆} : Term (Γ ,, ⋆⟪ !t₁ → !t₂ ⟫ ,, t₁ ) t₂ → Term Γ ⋆⟪ !t₁ → !t₂ ⟫
+  | app  {Γ : Ctx Δ} {t₁ t₂ : Δ ⊢F⋆ ⋆} : Term Γ ⋆⟪ !t₁ → !t₂ ⟫ → Term Γ t₁ → Term Γ t₂
 
-  | Λ    {Γ : Ctx Δ} {k} {t : Δ ,⋆ k ⊢⋆ ⋆} : Term (Γ ,,⋆ k) t → Term Γ ⋆⟪ ∀. !t ⟫
-  | sub  {Γ : Ctx Δ} {k} {t₁ : Δ ,⋆ k ⊢⋆ ⋆} : Term Γ ⋆⟪ ∀. !t₁ ⟫ → (t₂ : Δ ⊢⋆ k) → Term Γ (t₁[t₂]⋆)
+  | Λ    {Γ : Ctx Δ} {k} {t : Δ ,⋆ k ⊢F⋆ ⋆} : Term (Γ ,,⋆ k) t → Term Γ ⋆⟪ ∀. !t ⟫
+  | sub  {Γ : Ctx Δ} {k} {t₁ : Δ ,⋆ k ⊢F⋆ ⋆} : Term Γ ⋆⟪ ∀. !t₁ ⟫ → (t₂ : Δ ⊢F⋆ k) → Term Γ (t₁[t₂]⋆)
 
   | prim {Γ : Ctx Δ} : Term Γ .int → Prim → Term Γ .int → Term Γ .int
   | pair {Γ : Ctx Δ} : Term Γ t₁ → Term Γ t₂ → Term Γ ⋆⟪ !t₁ × !t₂ ⟫
   | fst  {Γ : Ctx Δ} : Term Γ ⋆⟪ !t₁ × !t₂ ⟫ → Term Γ t₁
   | snd  {Γ : Ctx Δ} : Term Γ ⋆⟪ !t₁ × !t₂ ⟫ → Term Γ t₂
-  | if0  {Γ : Ctx Δ} {t : Δ ⊢⋆ ⋆} : Term Γ .int → Term Γ t → Term Γ t → Term Γ t
+  | if0  {Γ : Ctx Δ} {t : Δ ⊢F⋆ ⋆} : Term Γ .int → Term Γ t → Term Γ t → Term Γ t
   deriving Repr
 
 namespace Term 
@@ -75,36 +75,42 @@ namespace Term
 end Term
 open Term
 
+namespace Examples 
   def fact :  ∅ ⊢ ⋆⟪ int → int ⟫ :=
-  Term.fix (.if0 (.var .here)
-      (.int 1)
-      (.prim (.var .here) .times (.app (.var (.there .here)) (Term.prim (.var .here) .minus (.int 1)))))
+    Term.fix (.if0 (.var .here)
+        (.int 1)
+        (.prim (.var .here) .times (.app (.var (.there .here)) (Term.prim (.var .here) .minus (.int 1)))))
 
   def fact' : ∅ ⊢ ⋆⟪ int → int ⟫ := 
-  ⟪ λ. if0 #0 then
-         1
-       else
-         #0 * (#1 (#0 - 1))
-       end ⟫
+    ⟪ λ.
+      if0 #0 then
+        1
+      else
+        #0 * (#1 (#0 - 1))
+      end ⟫
 
   theorem fact_eq_fact' : fact = fact' := rfl
 
   def sixfact := ⟪ !fact 6 ⟫
 
-  def freeid : (∅ ,,⋆ ⋆) ⊢ ⋆⟪ ♯0 → ♯0 ⟫ :=
-  ⟪ λ. #0 ⟫
+  def polyid : ∅ ⊢ ⋆⟪ ∀. ♯0 → ♯0 ⟫ :=  
+    ⟪ Λ. λ. #0 ⟫
 
   def intid : ∅ ⊢ ⋆⟪ int → int ⟫ :=
-  ⟪ (Λ. !freeid)[int] ⟫
+    ⟪ (!polyid)[int] ⟫
 
-def conv_ent {Δ Γ} {t₁ t₂ : Δ ⊢⋆ ⋆} : t₁ = t₂ → (Γ ⊢ t₁) → Γ ⊢ t₂
+  def twice : ∅ ⊢ ⋆⟪ ∀. (♯0 → ♯0) → ♯0 → ♯0 ⟫ := 
+    ⟪ Λ. λ. #1 #1 #0 ⟫ 
+end Examples
+
+def conv_ent {Δ Γ} {t₁ t₂ : Δ ⊢F⋆ ⋆} : t₁ = t₂ → (Γ ⊢ t₁) → Γ ⊢ t₂
   | rfl, a => a
 
 def Ren {Δ₁ Δ₂} (Γ₁ : Ctx Δ₁) (Γ₂ : Ctx Δ₂) : Renτ Δ₁ Δ₂ → Type := 
   fun rt =>
-  ∀ {t : Δ₁ ⊢⋆ ⋆}, Γ₁ ∋ t → Γ₂ ∋ renτ rt t
+  ∀ {t : Δ₁ ⊢F⋆ ⋆}, Γ₁ ∋ t → Γ₂ ∋ renτ rt t
 
-def lift {Δ₁ Δ₂ Γ₁ Γ₂} {rt : Renτ Δ₁ Δ₂} (r : Ren Γ₁ Γ₂ rt) {t : Δ₁ ⊢⋆ ⋆} : 
+def lift {Δ₁ Δ₂ Γ₁ Γ₂} {rt : Renτ Δ₁ Δ₂} (r : Ren Γ₁ Γ₂ rt) {t : Δ₁ ⊢F⋆ ⋆} : 
   Ren (Γ₁ ,, t) (Γ₂ ,, renτ rt t) rt 
   | _, .here => .here
   | _, .there x => .there (r x)
@@ -121,7 +127,7 @@ def τlift {Δ₁ Δ₂ Γ₁ Γ₂} {rt : Renτ Δ₁ Δ₂} (r : Ren Γ₁ Γ�
 
 
 def ren {Δ₁ Δ₂ Γ₁ Γ₂} {rt : Renτ Δ₁ Δ₂} (r : Ren Γ₁ Γ₂ rt) :
-  {t : Δ₁ ⊢⋆ ⋆} → (Γ₁ ⊢ t) → (Γ₂ ⊢ renτ rt t)
+  {t : Δ₁ ⊢F⋆ ⋆} → (Γ₁ ⊢ t) → (Γ₂ ⊢ renτ rt t)
   | _, .int i => .int i
   | _, .var x => .var (r x)
 
@@ -140,18 +146,18 @@ def ren {Δ₁ Δ₂ Γ₁ Γ₂} {rt : Renτ Δ₁ Δ₂} (r : Ren Γ₁ Γ₂ 
   | _, .snd e => .snd (ren r e)
   | _, .if0 e₁ e₂ e₃ => .if0 (ren r e₁) (ren r e₂) (ren r e₃)
 
-def weaken {Δ Γ} {t₁ t₂ : Δ ⊢⋆ ⋆} (e : Γ ⊢ t₁) : (Γ ,, t₂ ⊢ t₁) := by
+def weaken {Δ Γ} {t₁ t₂ : Δ ⊢F⋆ ⋆} (e : Γ ⊢ t₁) : (Γ ,, t₂ ⊢ t₁) := by
   apply conv_ent; rotate_left 1
   · exact (ren (conv_ni (Eq.symm renτ_id) ∘ .there) e)
   · apply renτ_id
 
-def tweaken {Δ Γ} (t : Δ ⊢⋆ ⋆) {k} (e : Γ ⊢ t) : Γ ,,⋆ k ⊢ weakenτ t :=
+def tweaken {Δ Γ} (t : Δ ⊢F⋆ ⋆) {k} (e : Γ ⊢ t) : Γ ,,⋆ k ⊢ weakenτ t :=
   ren .move e
 
 def Subs {Δ₁ Δ₂} (Γ₁ : Ctx Δ₁) (Γ₂ : Ctx Δ₂) (st : Subsτ Δ₁ Δ₂) : Type := 
-  {t : Δ₁ ⊢⋆ ⋆} → (Γ₁ ∋ t) → (Γ₂ ⊢ subsτ st t)
+  {t : Δ₁ ⊢F⋆ ⋆} → (Γ₁ ∋ t) → (Γ₂ ⊢ subsτ st t)
 
-def lifts {Δ₁ Δ₂ Γ₁ Γ₂} (st : Subsτ Δ₁ Δ₂) (s : Subs Γ₁ Γ₂ st) {t : Δ₁ ⊢⋆ ⋆} : Subs (Γ₁ ,, t) (Γ₂ ,, subsτ st t) st
+def lifts {Δ₁ Δ₂ Γ₁ Γ₂} (st : Subsτ Δ₁ Δ₂) (s : Subs Γ₁ Γ₂ st) {t : Δ₁ ⊢F⋆ ⋆} : Subs (Γ₁ ,, t) (Γ₂ ,, subsτ st t) st
   | _, .here => .var .here
   | _, .there x => weaken (s x)
 
@@ -167,7 +173,7 @@ def tlifts {Δ₁ Δ₂ Γ₁ Γ₂} (st : Subsτ Δ₁ Δ₂) (s : Subs Γ₁ �
       congr
 
 def subs {Δ₁ Δ₂ Γ₁ Γ₂} (st : Subsτ Δ₁ Δ₂) (s : Subs Γ₁ Γ₂ st) 
-  {t : Δ₁ ⊢⋆ ⋆} : (Γ₁ ⊢ t) → (Γ₂ ⊢ subsτ st t)
+  {t : Δ₁ ⊢F⋆ ⋆} : (Γ₁ ⊢ t) → (Γ₂ ⊢ subsτ st t)
   | .int i => .int i
   | .var x => s x
 
@@ -191,11 +197,11 @@ def subs {Δ₁ Δ₂ Γ₁ Γ₂} (st : Subsτ Δ₁ Δ₂) (s : Subs Γ₁ Γ�
   | .snd e => .snd (subs st s e)
   | .if0 e₁ e₂ e₃ => .if0 (subs st s e₁) (subs st s e₂) (subs st s e₃)
 
-def extend {Δ₁ Δ₂ Γ₁ Γ₂} (st : Subsτ Δ₁ Δ₂) (s : Subs Γ₁ Γ₂ st) {t : Δ₁ ⊢⋆ ⋆} : (Γ₂ ⊢ subsτ st t) → Subs (Γ₁ ,, t) Γ₂ st 
+def extend {Δ₁ Δ₂ Γ₁ Γ₂} (st : Subsτ Δ₁ Δ₂) (s : Subs Γ₁ Γ₂ st) {t : Δ₁ ⊢F⋆ ⋆} : (Γ₂ ⊢ subsτ st t) → Subs (Γ₁ ,, t) Γ₂ st 
   | e, _, .here => e
   | _, _, .there x => s x
 
-def subs_extend {Δ Γ k} {t₁ : Δ ,⋆ k ⊢⋆ ⋆} {t₂ : Δ ⊢⋆ k} (x : Γ ,,⋆ k ∋ t₁): Γ ⊢ subsτ (extendτ .var t₂) t₁ := by
+def subs_extend {Δ Γ k} {t₁ : Δ ,⋆ k ⊢F⋆ ⋆} {t₂ : Δ ⊢F⋆ k} (x : Γ ,,⋆ k ∋ t₁): Γ ⊢ subsτ (extendτ .var t₂) t₁ := by
   cases x
   rename_i x
   apply conv_ent; rotate_left 1
@@ -207,7 +213,7 @@ def subs_extend {Δ Γ k} {t₁ : Δ ,⋆ k ⊢⋆ ⋆} {t₂ : Δ ⊢⋆ k} (x 
       cases x <;> rfl
     rw [this, subsτ_id]
 
-def subs_one {Δ Γ} {t₁ t₂ : Δ ⊢⋆ ⋆} : (Γ ,, t₂ ⊢ t₁) → (Γ ⊢ t₂) → (Γ ⊢ t₁) := by
+def subs_one {Δ Γ} {t₁ t₂ : Δ ⊢F⋆ ⋆} : (Γ ,, t₂ ⊢ t₁) → (Γ ⊢ t₂) → (Γ ⊢ t₁) := by
   intro e₂ e₁
   apply conv_ent; rotate_left 1
   · exact (subs .var
@@ -220,7 +226,7 @@ def subs_one {Δ Γ} {t₁ t₂ : Δ ⊢⋆ ⋆} : (Γ ,, t₂ ⊢ t₁) → (Γ
 macro b:term:80 ".[" a:term:80 "]" : term =>
   `(subs_one $b $a)
 
-def tsubs_one {Δ Γ k} {t₁ : Δ ,⋆ k ⊢⋆ ⋆} (e : Γ ,,⋆ k ⊢ t₁) (t₂ : Δ ⊢⋆ k) : Γ ⊢ (t₁[t₂]⋆) := subs (extendτ .var t₂) subs_extend e
+def tsubs_one {Δ Γ k} {t₁ : Δ ,⋆ k ⊢F⋆ ⋆} (e : Γ ,,⋆ k ⊢ t₁) (t₂ : Δ ⊢F⋆ k) : Γ ⊢ (t₁[t₂]⋆) := subs (extendτ .var t₂) subs_extend e
 
 macro b:term:80 "⋆[" a:term:80 "]" : term =>
   `(tsubs_one $b $a)

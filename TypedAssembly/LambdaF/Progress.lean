@@ -5,11 +5,11 @@ def NoVar : ∀ {Δ}, Ctx Δ → Prop
   | _, .snoc_typ _ _ => False
   | _, .snoc_kind Γ _ => NoVar Γ
 
-def no_var : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢⋆ ⋆} → (x : Γ ∋ t) → False := by
+def no_var : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢F⋆ ⋆} → (x : Γ ∋ t) → False := by
   intros Δ Γ nv t x
   induction x <;> contradiction
 
-theorem progress : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢⋆ ⋆} → (e : Γ ⊢ t) →
+theorem progress : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢F⋆ ⋆} → (e : Γ ⊢ t) →
                    Value e ∨ (∃ e', e ==> e') := by
   intros Δ Γ nv t e
   induction e with
