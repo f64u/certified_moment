@@ -1,4 +1,4 @@
-import «TypedAssembly».SystemF.Step
+import «TypedAssembly».LambdaF.Step
 
 def NoVar : ∀ {Δ}, Ctx Δ → Prop
   | _, .nil => True
@@ -66,7 +66,6 @@ theorem progress : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢⋆ ⋆} → (e : Γ ⊢
       rename_i es s
       exists (.sub es t')
       constructor <;> assumption
-      
   | prim e₁ p e₂ e₁_ih e₂_ih =>
     have e₁_ih' := e₁_ih nv; clear e₁_ih
     have e₂_ih' := e₂_ih nv; clear e₂_ih
@@ -93,8 +92,6 @@ theorem progress : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢⋆ ⋆} → (e : Γ ⊢
       rename_i es s
       exists (.prim es p e₂)
       constructor <;> assumption
-
-      
   | pair e₁ e₂ e₁_ih e₂_ih => 
     have e₁_ih' := e₁_ih nv; clear e₁_ih
     have e₂_ih' := e₂_ih nv; clear e₂_ih
@@ -116,7 +113,6 @@ theorem progress : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢⋆ ⋆} → (e : Γ ⊢
       apply Or.inr
       exists (.pair es e₂)
       constructor; assumption
-    
   | fst e' e'_ih =>
     have e'_ih' := e'_ih nv; clear e'_ih
     apply Or.inr
@@ -131,7 +127,6 @@ theorem progress : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢⋆ ⋆} → (e : Γ ⊢
       rename_i es s
       exists (.fst es)
       constructor; assumption
-      
   | snd e' e'_ih => 
     have e'_ih' := e'_ih nv; clear e'_ih
     apply Or.inr
@@ -146,7 +141,6 @@ theorem progress : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢⋆ ⋆} → (e : Γ ⊢
       rename_i es s
       exists (.snd es)
       constructor; assumption
-
   | «if0» e₁ e₂ e₃ e₁_ih =>
     apply Or.inr
     have e₁_ih' := e₁_ih nv; clear e₁_ih

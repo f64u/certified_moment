@@ -1,4 +1,4 @@
-import «TypedAssembly».SystemF.TypEnv
+import «TypedAssembly».LambdaF.TypEnv
 
 inductive Typ   : Ctxt → Kind → Type where
   | var {j}     : Δ ∋⋆ j → Typ Δ j

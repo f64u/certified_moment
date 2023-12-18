@@ -1,4 +1,4 @@
-import «TypedAssembly».SystemF.Term
+import «TypedAssembly».LambdaF.Term
 
 inductive Value : {Δ : Ctxt} → {Γ : Ctx Δ} → {t : Δ ⊢⋆ ⋆} → (Γ ⊢ t) → Prop where
   | v_int : Value (.int i)

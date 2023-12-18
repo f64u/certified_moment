@@ -1,2 +1,0 @@
-import «TypedAssembly».SystemF.Typ
-

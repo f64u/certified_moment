@@ -1,6 +1,6 @@
-import «TypedAssembly».SystemF.Typ
-import «TypedAssembly».SystemF.Prim
-import «TypedAssembly».SystemF.TermEnv
+import «TypedAssembly».LambdaF.Typ
+import «TypedAssembly».LambdaF.Prim
+import «TypedAssembly».LambdaF.TermEnv
 
 inductive Term : {Δ : Ctxt} → Ctx Δ → Δ ⊢⋆ ⋆ → Type where
   | int  {Γ : Ctx Δ} : Int → Term Γ .int

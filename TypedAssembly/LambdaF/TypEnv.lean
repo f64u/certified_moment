@@ -1,4 +1,4 @@
-import «TypedAssembly».SystemF.Kind
+import «TypedAssembly».LambdaF.Kind
 
 /-- This is essentially a Nat, since we do not gain
     information by cons'ing a specific Kind (they're all ⋆) -/
