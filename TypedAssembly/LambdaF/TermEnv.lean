@@ -1,4 +1,4 @@
-import «TypedAssembly».LambdaF.Typ
+import «TypedAssembly».LambdaF.TypF
 
 inductive Ctx : Ctxt → Type where
   | nil       : Ctx Ø
@@ -16,7 +16,7 @@ inductive Lookup : Ctx Δ → Δ ⊢F⋆ ⋆ → Type where
   | here  {Γ : Ctx Δ} {t : Δ ⊢F⋆ ⋆}     : Lookup (Γ ,, t) t
   | there {Γ : Ctx Δ} {t₁ t₂ : Δ ⊢F⋆ ⋆} : Lookup Γ t₁ → Lookup (Γ ,, t₂) t₁
   | move  {Γ : Ctx Δ} {t : Δ ⊢F⋆ ⋆} {k} : Lookup Γ t →
-                                         Lookup (Γ ,,⋆ k) (weakenτ t)
+                                          Lookup (Γ ,,⋆ k) (weakenτ t)
 deriving Repr
 
 namespace Lookup

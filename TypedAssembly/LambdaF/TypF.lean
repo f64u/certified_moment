@@ -1,16 +1,16 @@
 import «TypedAssembly».Common.TypEnv
 import «TypedAssembly».Common.SubstOne
 
-inductive Typ   : Ctxt → Kind → Type where
-  | var {j}     : Δ ∋⋆ j → Typ Δ j
-  | int         : Typ Δ ⋆
-  | arrow       : Typ Δ ⋆ → Typ Δ ⋆ → Typ Δ ⋆
-  | prod        : Typ Δ ⋆ → Typ Δ ⋆ → Typ Δ ⋆
-  | for_all {j} : Typ (Δ ,⋆ j) ⋆ → Typ Δ ⋆
+inductive TypF   : Ctxt → Kind → Type where
+  | var {j}      : Δ ∋⋆ j → TypF Δ j
+  | int          : TypF Δ ⋆
+  | arrow        : TypF Δ ⋆ → TypF Δ ⋆ → TypF Δ ⋆
+  | prod         : TypF Δ ⋆ → TypF Δ ⋆ → TypF Δ ⋆
+  | for_all {j}  : TypF (Δ ,⋆ j) ⋆ → TypF Δ ⋆
   deriving BEq, DecidableEq, Repr
 
-namespace Typ
-  infixl:90 " ⊢F⋆ " => Typ
+namespace TypF
+  infixl:90 " ⊢F⋆ " => TypF
 
   declare_syntax_cat typ
   syntax "!" term:max : typ
@@ -19,23 +19,23 @@ namespace Typ
   syntax:50 typ (" → " <|> " -> ") typ : typ
   syntax:50 typ " × " typ : typ
   syntax:10 "∀. " typ : typ
-  syntax " ⋆⟪ " typ " ⟫ " : term
+  syntax " f⋆⟪ " typ " ⟫ " : term
 
   syntax " ( " typ " ) " : typ
   
   macro_rules 
-  | `( ⋆⟪ !$t ⟫) => `($t)
-  | `( ⋆⟪ int ⟫ ) => `(Typ.int)
-  | `( ⋆⟪ ♯$n ⟫ ) => `(Typ.var (by get_elem $n))
-  | `( ⋆⟪ $t₁ → $t₂ ⟫ ) => `(Typ.arrow ⋆⟪ $t₁ ⟫ ⋆⟪ $t₂ ⟫)
-  | `( ⋆⟪ $t₁ × $t₂ ⟫ ) => `(Typ.prod ⋆⟪ $t₁ ⟫ ⋆⟪ $t₂ ⟫)
-  | `( ⋆⟪ ∀. $t ⟫) => `(Typ.for_all ⋆⟪ $t ⟫)
-  | `( ⋆⟪ ( $t )  ⟫ ) => `(⋆⟪ $t ⟫)
+  | `( f⋆⟪ !$t ⟫) => `($t)
+  | `( f⋆⟪ int ⟫ ) => `(TypF.int)
+  | `( f⋆⟪ ♯$n ⟫ ) => `(TypF.var (by get_elem $n))
+  | `( f⋆⟪ $t₁ → $t₂ ⟫ ) => `(TypF.arrow f⋆⟪ $t₁ ⟫ f⋆⟪ $t₂ ⟫)
+  | `( f⋆⟪ $t₁ × $t₂ ⟫ ) => `(TypF.prod f⋆⟪ $t₁ ⟫ f⋆⟪ $t₂ ⟫)
+  | `( f⋆⟪ ∀. $t ⟫) => `(TypF.for_all f⋆⟪ $t ⟫)
+  | `( f⋆⟪ ( $t )  ⟫ ) => `(f⋆⟪ $t ⟫)
 
-  example : Ø ,⋆ ⋆ ,⋆ ⋆ ,⋆ ⋆ ⊢F⋆ ⋆ := ⋆⟪ ♯2 ⟫
-  def polyidt : Δ ⊢F⋆ ⋆ := ⋆⟪ ∀. ♯0 → ♯0 ⟫
-end Typ
-open Typ
+  example : Ø ,⋆ ⋆ ,⋆ ⋆ ,⋆ ⋆ ⊢F⋆ ⋆ := f⋆⟪ ♯2 ⟫
+  def polyidt : Δ ⊢F⋆ ⋆ := f⋆⟪ ∀. ♯0 → ♯0 ⟫
+end TypF
+open TypF
 
 /-- A Renτ Δ₁ Δ₂ is a a function that transforms a typ variable. -/
 @[reducible]
@@ -149,10 +149,10 @@ def extendτ {Δ₁ Δ₂} : Subsτ Δ₁ Δ₂ → ∀ {k}, (Δ₂ ⊢F⋆ k) �
 def subsτ_one {Δ j k} (t₁ : Δ ,⋆ k ⊢F⋆ j) (t₂ : Δ ⊢F⋆ k) : Δ ⊢F⋆ j :=
   (subsτ (extendτ .var t₂) t₁)
 
-instance : SubsτOne Typ where
+instance : SubsτOne TypF where
   subsτ_one := subsτ_one
 
-example : ⋆⟪ ♯0 → ♯0 ⟫[.int]⋆ = (⋆⟪ int → int ⟫ : Typ Ø ⋆) := rfl
+example : f⋆⟪ ♯0 → ♯0 ⟫[.int]⋆ = (f⋆⟪ int → int ⟫ : Ø ⊢F⋆ ⋆) := rfl
 
 theorem liftsτ_liftτ : ∀ {Δ₁ Δ₂ Δ₃} (rt : Renτ Δ₁ Δ₂) (st : Subsτ Δ₂ Δ₃)
                          {j k} (x : Δ₁ ,⋆ k ∋⋆ j), 
@@ -217,7 +217,7 @@ theorem subsτ_id : ∀ {Δ j} (t : Δ ⊢F⋆ j), subsτ .var t = t := by
   induction t <;> simp_all!
 
   case for_all Δ' k t' t'_ih =>
-    have : (fun {j} => @liftsτ Δ' Δ' Typ.var k j) = (fun {j} => @Typ.var (Δ' ,⋆ k) j) := by
+    have : (fun {j} => @liftsτ Δ' Δ' .var k j) = (fun {j} => @TypF.var (Δ' ,⋆ k) j) := by
           funext _ t
           cases t <;> rfl
     rw [this]
@@ -259,7 +259,7 @@ theorem subsτ_subsτ_one : ∀ {Δ₁ Δ₂ k} (st : Subsτ Δ₁ Δ₂) (t₁ 
   · rename_i x'
     simp [extendτ, liftsτ, weakenτ, subsτ]
     rw [←subsτ_renτ]
-    have : (fun {j} => extendτ (fun {j} => var) (subsτ (fun {j} => st) t₁) ∘ Lookupt.there) = fun {j} => @Typ.var Δ₂ j := by
+    have : (fun {j} => extendτ (fun {j} => .var) (subsτ (fun {j} => st) t₁) ∘ Lookupt.there) = fun {j} => @TypF.var Δ₂ j := by
       funext _ x
       cases x <;> rfl
     rw [this, subsτ_id]

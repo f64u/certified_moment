@@ -9,14 +9,12 @@ def no_var : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢F⋆ ⋆} → (x : Γ ∋ t) �
   intros Δ Γ nv t x
   induction x <;> contradiction
 
-theorem progress : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢F⋆ ⋆} → (e : Γ ⊢ t) →
+theorem progress : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢F⋆ ⋆} → (e : Γ ⊢F t) →
                    Value e ∨ (∃ e', e ==> e') := by
   intros Δ Γ nv t e
   induction e with
   | «int» => apply Or.inl; constructor
-  | var x => 
-    have : False := no_var nv x
-    cases this
+  | var x => cases (no_var nv x)
   | fix => apply Or.inl; constructor
   | app e₁ e₂ e₁_ih e₂_ih => 
     apply Or.inr
