@@ -2,6 +2,7 @@ import «TypedAssembly».LambdaF.Term
 
 inductive Value : {Γ : Ctx Δ} → {t : Δ ⊢F⋆ ⋆} → (Γ ⊢F t) → Prop where
   | v_int  : Value (.int i)
+  | v_unit  : Value .unit
   | v_fix  : Value (.fix e)
   | v_Λ    : Value e → Value (.Λ e)
   | v_pair : Value e₁ → Value e₂ → Value (.pair e₁ e₂)

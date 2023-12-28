@@ -14,6 +14,7 @@ theorem progress : ∀ {Δ Γ}, NoVar Γ → {t : Δ ⊢F⋆ ⋆} → (e : Γ �
   intros Δ Γ nv t e
   induction e with
   | «int» => apply Or.inl; constructor
+  | unit => apply Or.inl; constructor
   | var x => cases (no_var nv x)
   | fix => apply Or.inl; constructor
   | app e₁ e₂ e₁_ih e₂_ih => 
