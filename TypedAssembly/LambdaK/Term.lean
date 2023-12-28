@@ -1,11 +1,11 @@
-import «TypedAssembly».LambdaF.Typ
+import «TypedAssembly».LambdaK.Typ
+import «TypedAssembly».LambdaK.TermEnv
 import «TypedAssembly».Common.Prim
-import «TypedAssembly».LambdaF.TermEnv
 
-inductive Term : {Δ : Ctxt} → Ctx Δ → Δ ⊢F⋆ ⋆ → Type where
+inductive Term : {Δ : Ctxt} → Ctx Δ → Δ ⊢K⋆ ⋆ → Type where
   | int  {Γ : Ctx Δ} : Int → Term Γ .int
   | unit {Γ : Ctx Δ} : Term Γ .unit
-  | var  {Γ : Ctx Δ} {t : Δ ⊢F⋆ ⋆} : Γ ∋ t → Term Γ t
+  | var  {Γ : Ctx Δ} {t : Δ ⊢K⋆ ⋆} : Γ ∋ t → Term Γ t
 
   | fix  {Γ : Ctx Δ} {t₁ t₂ : Δ ⊢F⋆ ⋆} : Term (Γ ,, f⋆⟪ !t₁ → !t₂ ⟫ ,, t₁ ) t₂ → Term Γ f⋆⟪ !t₁ → !t₂ ⟫
   | app  {Γ : Ctx Δ} {t₁ t₂ : Δ ⊢F⋆ ⋆} : Term Γ f⋆⟪ !t₁ → !t₂ ⟫ → Term Γ t₁ → Term Γ t₂
@@ -21,7 +21,7 @@ inductive Term : {Δ : Ctxt} → Ctx Δ → Δ ⊢F⋆ ⋆ → Type where
   deriving Repr
 
 namespace Term 
-  notation:50 Γ " ⊢F " t => Term Γ t
+  notation:50 Γ " ⊢K " t => Term Γ t
 
   syntax "get_elem'" (ppSpace term) : tactic
   macro_rules | `(tactic| get_elem' $n) => match n.1.toNat with
@@ -211,7 +211,7 @@ def subs_extend {Δ Γ k} {t₁ : Δ ,⋆ k ⊢F⋆ ⋆} {t₂ : Δ ⊢F⋆ k} (
   · exact (.var x)
   · simp [weakenτ]
     rw [←subsτ_renτ]
-    have : (fun {j} => extendτ (fun {j} => Typ.var) t₂ ∘ Lookupt.there) = fun {j} => @Typ.var Δ j := by
+    have : (fun {j} => extendτ (fun {j} => TypF.var) t₂ ∘ Lookupt.there) = fun {j} => @TypF.var Δ j := by
       funext j x
       cases x <;> rfl
     rw [this, subsτ_id]

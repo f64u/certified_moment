@@ -1,4 +1,4 @@
-import «TypedAssembly».LambdaF.TypF
+import «TypedAssembly».LambdaF.Typ
 
 inductive Ctx : Ctxt → Type where
   | nil       : Ctx Ø

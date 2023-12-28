@@ -2,44 +2,44 @@ import «TypedAssembly».Common.TypEnv
 import «TypedAssembly».Common.SubstOne
 import «TypedAssembly».Common.Rent
 
-inductive TypF   : Ctxt → Kind → Type where
-  | var {j}      : Δ ∋⋆ j → TypF Δ j
-  | int          : TypF Δ ⋆
-  | unit         : TypF Δ ⋆ -- aka, an empty tuple
-  | arrow        : TypF Δ ⋆ → TypF Δ ⋆ → TypF Δ ⋆
-  | prod         : TypF Δ ⋆ → TypF Δ ⋆ → TypF Δ ⋆
-  | for_all {j}  : TypF (Δ ,⋆ j) ⋆ → TypF Δ ⋆
+inductive Typ    : Ctxt → Kind → Type where
+  | var {j}      : Δ ∋⋆ j → Typ Δ j
+  | int          : Typ Δ ⋆
+  | unit         : Typ Δ ⋆ -- aka, an empty tuple
+  | arrow        : Typ Δ ⋆ → Typ Δ ⋆ → Typ Δ ⋆
+  | prod         : Typ Δ ⋆ → Typ Δ ⋆ → Typ Δ ⋆
+  | for_all {j}  : Typ (Δ ,⋆ j) ⋆ → Typ Δ ⋆
   deriving BEq, DecidableEq, Repr
 
-namespace TypF
-  infixl:90 " ⊢F⋆ " => TypF
+namespace Typ
+  infixl:90 " ⊢F⋆ " => Typ
 
-  declare_syntax_cat typ
-  syntax "!" term:max : typ
-  syntax:90 "♯" num : typ
-  syntax " int " : typ
-  syntax " () " : typ
-  syntax:50 typ (" → " <|> " -> ") typ : typ
-  syntax:50 typ " × " typ : typ
-  syntax:10 "∀. " typ : typ
-  syntax " f⋆⟪ " typ " ⟫ " : term
+  declare_syntax_cat typf
+  syntax "!" term:max : typf
+  syntax:90 "♯" num : typf
+  syntax " int " : typf
+  syntax " () " : typf
+  syntax:50 typf (" → " <|> " -> ") typf : typf
+  syntax:50 typf " × " typf : typf
+  syntax:10 "∀. " typf : typf
+  syntax " f⋆⟪ " typf " ⟫ " : term
 
-  syntax " ( " typ " ) " : typ
+  syntax " ( " typf " ) " : typf
   
   macro_rules 
   | `( f⋆⟪ !$t ⟫) => `($t)
-  | `( f⋆⟪ int ⟫ ) => `(TypF.int)
-  | `( f⋆⟪ () ⟫ ) => `(TypF.unit)
-  | `( f⋆⟪ ♯$n ⟫ ) => `(TypF.var (by get_elem $n))
-  | `( f⋆⟪ $t₁ → $t₂ ⟫ ) => `(TypF.arrow f⋆⟪ $t₁ ⟫ f⋆⟪ $t₂ ⟫)
-  | `( f⋆⟪ $t₁ × $t₂ ⟫ ) => `(TypF.prod f⋆⟪ $t₁ ⟫ f⋆⟪ $t₂ ⟫)
-  | `( f⋆⟪ ∀. $t ⟫) => `(TypF.for_all f⋆⟪ $t ⟫)
+  | `( f⋆⟪ int ⟫ ) => `(Typ.int)
+  | `( f⋆⟪ () ⟫ ) => `(Typ.unit)
+  | `( f⋆⟪ ♯$n ⟫ ) => `(Typ.var (by get_elem $n))
+  | `( f⋆⟪ $t₁ → $t₂ ⟫ ) => `(Typ.arrow f⋆⟪ $t₁ ⟫ f⋆⟪ $t₂ ⟫)
+  | `( f⋆⟪ $t₁ × $t₂ ⟫ ) => `(Typ.prod f⋆⟪ $t₁ ⟫ f⋆⟪ $t₂ ⟫)
+  | `( f⋆⟪ ∀. $t ⟫) => `(Typ.for_all f⋆⟪ $t ⟫)
   | `( f⋆⟪ ( $t )  ⟫ ) => `(f⋆⟪ $t ⟫)
 
   example : Ø ,⋆ ⋆ ,⋆ ⋆ ,⋆ ⋆ ⊢F⋆ ⋆ := f⋆⟪ ♯2 ⟫
   def polyidt : Δ ⊢F⋆ ⋆ := f⋆⟪ ∀. ♯0 → ♯0 ⟫
-end TypF
-open TypF
+end Typ
+open Typ
  
 /-- renτ takes a Renτ and a typ and applies it to that typ,
     essentially moving it from one typing ctxt to another. -/
@@ -123,7 +123,7 @@ def extendτ {Δ₁ Δ₂} : Subsτ Δ₁ Δ₂ → ∀ {k}, (Δ₂ ⊢F⋆ k) �
 def subsτ_one {Δ j k} (t₁ : Δ ,⋆ k ⊢F⋆ j) (t₂ : Δ ⊢F⋆ k) : Δ ⊢F⋆ j :=
   (subsτ (extendτ .var t₂) t₁)
 
-instance : SubsτOne TypF where
+instance : SubsτOne Typ where
   subsτ_one := subsτ_one
 
 example : f⋆⟪ ♯0 → ♯0 ⟫[.int]⋆ = (f⋆⟪ int → int ⟫ : Ø ⊢F⋆ ⋆) := rfl
@@ -191,7 +191,7 @@ theorem subsτ_id : ∀ {Δ j} (t : Δ ⊢F⋆ j), subsτ .var t = t := by
   induction t <;> simp_all!
 
   case for_all Δ' k t' t'_ih =>
-    have : (fun {j} => @liftsτ Δ' Δ' .var k j) = (fun {j} => @TypF.var (Δ' ,⋆ k) j) := by
+    have : (fun {j} => @liftsτ Δ' Δ' .var k j) = (fun {j} => @Typ.var (Δ' ,⋆ k) j) := by
           funext _ t
           cases t <;> rfl
     rw [this]
@@ -233,7 +233,7 @@ theorem subsτ_subsτ_one : ∀ {Δ₁ Δ₂ k} (st : Subsτ Δ₁ Δ₂) (t₁ 
   · rename_i x'
     simp [extendτ, liftsτ, weakenτ, subsτ]
     rw [←subsτ_renτ]
-    have : (fun {j} => extendτ (fun {j} => .var) (subsτ (fun {j} => st) t₁) ∘ Lookupt.there) = fun {j} => @TypF.var Δ₂ j := by
+    have : (fun {j} => extendτ (fun {j} => .var) (subsτ (fun {j} => st) t₁) ∘ Lookupt.there) = fun {j} => @Typ.var Δ₂ j := by
       funext _ x
       cases x <;> rfl
     rw [this, subsτ_id]

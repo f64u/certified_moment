@@ -1,14 +1,14 @@
 import «TypedAssembly».Common.TypEnv
 import «TypedAssembly».Common.SubstOne
 
-inductive TypK : Ctxt → Kind → Type where
-  | var {j}    : Δ ∋⋆ j → TypK Δ j
-  | int        : TypK Δ ⋆
-  | unit       : TypK Δ ⋆ -- To call functions that take no arguments
-  | for_all    : (Δ' : Ctxt) → TypK (Δ.extend Δ') ⋆ → TypK Δ ⋆  -- If you need multiple arguments, pass a product; abstract later
-  | prod       : TypK Δ ⋆ → TypK Δ ⋆ → TypK Δ ⋆
-namespace TypK
-  infixl:90 " ⊢K⋆ " => TypK
+inductive Typ  : Ctxt → Kind → Type where
+  | var {j}    : Δ ∋⋆ j → Typ Δ j
+  | int        : Typ Δ ⋆
+  | unit       : Typ Δ ⋆ -- To call functions that take no arguments
+  | for_all    : (Δ' : Ctxt) → Typ (Δ.extend Δ') ⋆ → Typ Δ ⋆  -- If you need multiple arguments, pass a product
+  | prod       : Typ Δ ⋆ → Typ Δ ⋆ → Typ Δ ⋆
+namespace Typ
+  infixl:90 " ⊢K⋆ " => Typ
 
   declare_syntax_cat typk
   syntax "!" term:max : typk
@@ -24,13 +24,13 @@ namespace TypK
   
   macro_rules 
   | `( k⋆⟪ !$t ⟫) => `($t)
-  | `( k⋆⟪ int ⟫ ) => `(TypK.int)
-  | `( k⋆⟪ () ⟫ ) => `(TypK.unit)
-  | `( k⋆⟪ ♯$n ⟫ ) => `(TypK.var (by get_elem $n))
-  | `( k⋆⟪ ∀[$c].($t) → void ⟫ ) => `(TypK.for_all $c k⋆⟪ $t ⟫)
-  | `( k⋆⟪ ($t) → void ⟫ ) => `(TypK.for_all Ø k⋆⟪$t⟫)
-  | `( k⋆⟪ () → void ⟫ ) => `(TypK.for_all Ø .unit)
-  | `( k⋆⟪ $t₁ × $t₂ ⟫ ) => `(TypK.prod k⋆⟪ $t₁ ⟫ k⋆⟪ $t₂ ⟫)
+  | `( k⋆⟪ int ⟫ ) => `(Typ.int)
+  | `( k⋆⟪ () ⟫ ) => `(Typ.unit)
+  | `( k⋆⟪ ♯$n ⟫ ) => `(Typ.var (by get_elem $n))
+  | `( k⋆⟪ ∀[$c].($t) → void ⟫ ) => `(Typ.for_all $c k⋆⟪ $t ⟫)
+  | `( k⋆⟪ ($t) → void ⟫ ) => `(Typ.for_all Ø k⋆⟪$t⟫)
+  | `( k⋆⟪ () → void ⟫ ) => `(Typ.for_all Ø .unit)
+  | `( k⋆⟪ $t₁ × $t₂ ⟫ ) => `(Typ.prod k⋆⟪ $t₁ ⟫ k⋆⟪ $t₂ ⟫)
   | `( k⋆⟪ ( $t ) ⟫ ) => `(k⋆⟪ $t ⟫)
 
 
@@ -45,5 +45,5 @@ namespace TypK
 
   example : k⋆⟪ (()) → void ⟫ =
            (k⋆⟪  ()  → void ⟫ : Δ ⊢K⋆ ⋆) := rfl
-end TypK
-open TypK
+end Typ
+open Typ
