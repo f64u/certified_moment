@@ -4,6 +4,7 @@ import «TypedAssembly».LambdaF.TermEnv
 
 inductive Term : {Δ : Ctxt} → Ctx Δ → Δ ⊢F⋆ ⋆ → Type where
   | int  {Γ : Ctx Δ} : Int → Term Γ .int
+  | unit {Γ : Ctx Δ} : Term Γ .unit
   | var  {Γ : Ctx Δ} {t : Δ ⊢F⋆ ⋆} : Γ ∋ t → Term Γ t
 
   | fix  {Γ : Ctx Δ} {t₁ t₂ : Δ ⊢F⋆ ⋆} : Term (Γ ,, f⋆⟪ !t₁ → !t₂ ⟫ ,, t₁ ) t₂ → Term Γ f⋆⟪ !t₁ → !t₂ ⟫
@@ -35,6 +36,7 @@ namespace Term
   declare_syntax_cat trm
   syntax "!" term:max : trm
   syntax num : trm 
+  syntax " () " : trm 
   syntax "#" num : trm
   syntax " λ. " trm : trm
   syntax trm trm : trm
@@ -55,6 +57,7 @@ namespace Term
   macro_rules
     | `( f⟪ !$t ⟫) => `($t)
     | `( f⟪ $i:num ⟫ ) => `(Term.int $i)
+    | `( f⟪ () ⟫ ) => `(Term.unit)
     | `( f⟪ #$i:num ⟫ ) => `(#$i)
     | `( f⟪ λ. $e ⟫ ) => `(Term.fix f⟪ $e ⟫)
     | `( f⟪ $e₁ $e₂  ⟫) => `(Term.app f⟪ $e₁ ⟫ f⟪ $e₂ ⟫ )
@@ -127,6 +130,7 @@ def τlift {Δ₁ Δ₂ Γ₁ Γ₂} {rt : Renτ Δ₁ Δ₂} (r : Ren Γ₁ Γ�
 def ren {Δ₁ Δ₂ Γ₁ Γ₂} {rt : Renτ Δ₁ Δ₂} (r : Ren Γ₁ Γ₂ rt) :
   {t : Δ₁ ⊢F⋆ ⋆} → (Γ₁ ⊢F t) → (Γ₂ ⊢F renτ rt t)
   | _, .int i => .int i
+  | _, .unit => .unit
   | _, .var x => .var (r x)
 
   | _, .fix e => .fix (ren (lift (lift r)) e)
@@ -173,6 +177,7 @@ def tlifts {Δ₁ Δ₂ Γ₁ Γ₂} (st : Subsτ Δ₁ Δ₂) (s : Subs Γ₁ �
 def subs {Δ₁ Δ₂ Γ₁ Γ₂} (st : Subsτ Δ₁ Δ₂) (s : Subs Γ₁ Γ₂ st) 
   {t : Δ₁ ⊢F⋆ ⋆} : (Γ₁ ⊢F t) → (Γ₂ ⊢F subsτ st t)
   | .int i => .int i
+  | .unit => .unit
   | .var x => s x
 
   | .fix e => .fix (subs st (lifts st (lifts st s)) e)

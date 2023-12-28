@@ -5,6 +5,7 @@ import «TypedAssembly».Common.Rent
 inductive TypF   : Ctxt → Kind → Type where
   | var {j}      : Δ ∋⋆ j → TypF Δ j
   | int          : TypF Δ ⋆
+  | unit         : TypF Δ ⋆ -- aka, an empty tuple
   | arrow        : TypF Δ ⋆ → TypF Δ ⋆ → TypF Δ ⋆
   | prod         : TypF Δ ⋆ → TypF Δ ⋆ → TypF Δ ⋆
   | for_all {j}  : TypF (Δ ,⋆ j) ⋆ → TypF Δ ⋆
@@ -17,6 +18,7 @@ namespace TypF
   syntax "!" term:max : typ
   syntax:90 "♯" num : typ
   syntax " int " : typ
+  syntax " () " : typ
   syntax:50 typ (" → " <|> " -> ") typ : typ
   syntax:50 typ " × " typ : typ
   syntax:10 "∀. " typ : typ
@@ -27,6 +29,7 @@ namespace TypF
   macro_rules 
   | `( f⋆⟪ !$t ⟫) => `($t)
   | `( f⋆⟪ int ⟫ ) => `(TypF.int)
+  | `( f⋆⟪ () ⟫ ) => `(TypF.unit)
   | `( f⋆⟪ ♯$n ⟫ ) => `(TypF.var (by get_elem $n))
   | `( f⋆⟪ $t₁ → $t₂ ⟫ ) => `(TypF.arrow f⋆⟪ $t₁ ⟫ f⋆⟪ $t₂ ⟫)
   | `( f⋆⟪ $t₁ × $t₂ ⟫ ) => `(TypF.prod f⋆⟪ $t₁ ⟫ f⋆⟪ $t₂ ⟫)
@@ -42,6 +45,7 @@ open TypF
     essentially moving it from one typing ctxt to another. -/
  def renτ {Δ₁ Δ₂} : Renτ Δ₁ Δ₂ → ∀ {k}, Δ₁ ⊢F⋆ k → Δ₂ ⊢F⋆ k 
   |  _, _, .int => .int
+  |  _, _, .unit => .unit
   | rt, _, .var a => .var (rt a)
   | rt, _, .arrow t₁ t₂ => .arrow (renτ rt t₁) (renτ rt t₂)
   | rt, _, .prod t₁ t₂ => .prod (renτ rt t₁) (renτ rt t₂)
@@ -103,6 +107,7 @@ def liftsτ {Δ₁ Δ₂} (st :  Subsτ Δ₁ Δ₂) {k} : Subsτ (Δ₁ ,⋆ k)
 /-- subsτ takes a Subsτ and a typ and applies it to the free variables in it -/
 def subsτ {Δ₁ Δ₂} : Subsτ Δ₁ Δ₂ → ∀ {j}, Δ₁ ⊢F⋆ j → Δ₂ ⊢F⋆ j 
   |  _, _, .int => .int
+  |  _, _, .unit => .unit
   | st, _, .var a => st a
   | st, _, .arrow t₁ t₂ => .arrow (subsτ st t₁) (subsτ st t₂)
   | st, _, .prod t₁ t₂ => .prod (subsτ st t₁) (subsτ st t₂)
