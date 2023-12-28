@@ -1,5 +1,6 @@
 import «TypedAssembly».Common.TypEnv
 import «TypedAssembly».Common.SubstOne
+import «TypedAssembly».Common.Rent
 
 inductive TypF   : Ctxt → Kind → Type where
   | var {j}      : Δ ∋⋆ j → TypF Δ j
@@ -36,22 +37,6 @@ namespace TypF
   def polyidt : Δ ⊢F⋆ ⋆ := f⋆⟪ ∀. ♯0 → ♯0 ⟫
 end TypF
 open TypF
-
-/-- A Renτ Δ₁ Δ₂ is a a function that transforms a typ variable. -/
-@[reducible]
-def Renτ (Δ₁ Δ₂ : Ctxt) : Type :=
-  ∀ {j}, (Δ₁ ∋⋆ j) → (Δ₂ ∋⋆ j)
-
-/-- liftτ takes a Renτ and returns a different Renτ that does not
-    alter the first variable but all other variables are further
-    shifted right and have the Renτ applied to the shifted-left
-    version of them.
-
-    This transformation is helpful for renaming
-    under the binders (namely ∀.) -/
-def liftτ {Δ₁ Δ₂} : Renτ Δ₁ Δ₂ → ∀ {k},  Renτ (Δ₁ ,⋆ k) (Δ₂ ,⋆ k)
-  |  _, _, _, .here => .here
-  | rt, _, _, .there a => .there (rt a)
  
 /-- renτ takes a Renτ and a typ and applies it to that typ,
     essentially moving it from one typing ctxt to another. -/
@@ -66,24 +51,9 @@ def liftτ {Δ₁ Δ₂} : Renτ Δ₁ Δ₂ → ∀ {k},  Renτ (Δ₁ ,⋆ k) 
     free typ variables in that typ have been shifted right by 1 position -/
 def weakenτ {Δ j k} : Δ ⊢F⋆ j → Δ ,⋆ k ⊢F⋆ j := renτ .there
 
-theorem liftτ_id : ∀ {Δ j k} {a : Δ ,⋆ k ∋⋆ j}, liftτ id a = a := by
-  intros Δ j k a
-  cases a <;> simp [liftτ]
-
-theorem liftτ_comp : ∀ {Δ₁ Δ₂ Δ₃} {rt₁ : Renτ Δ₁ Δ₂} {rt₂ : Renτ Δ₂ Δ₃} {j k} {a : Δ₁ ,⋆ k ∋⋆ j},
-                     liftτ (rt₂ ∘ rt₁) a = liftτ rt₂ (liftτ rt₁ a) := by
-  intros Δ₁ Δ₂ Δ₃ rt₁ rt₂ j k a
-  cases a <;> simp [liftτ]
-
 theorem renτ_id : ∀ {Δ j} {t : Δ ⊢F⋆ j}, renτ id t = t := by
   intros Δ j t
-  induction t <;> simp [renτ]
-
-  case arrow Δ' t₁ t₂ t₁_ih t₂_ih =>
-    constructor <;> assumption
-
-  case prod Δ' t₁ t₂ t₁_ih t₂_ih =>
-    constructor <;> assumption
+  induction t <;> simp_all!
 
   case for_all Δ' j' t' t'_ih =>
     have : (fun {j} => @liftτ Δ' Δ' id j' j) = (fun {j} => @id (Δ' ,⋆ j' ∋⋆ j)) := by
@@ -96,7 +66,6 @@ theorem renτ_comp : ∀ {Δ₁ Δ₂ Δ₃} {rt₁ : Renτ Δ₁ Δ₂} {rt₂ 
                     renτ (rt₂ ∘ rt₁) t = renτ rt₂ (renτ rt₁ t) := by
   intros Δ₁ Δ₂ Δ₃ rt₁ rt₂ j t
   induction t generalizing Δ₂ Δ₃ rt₂ <;> simp_all!
-
 
   case for_all Δ' k t' t'_ih =>
     have : (fun {j} =>

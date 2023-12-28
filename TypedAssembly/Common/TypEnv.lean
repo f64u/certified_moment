@@ -4,12 +4,18 @@ import «TypedAssembly».Common.Kind
     information by cons'ing a specific Kind (they're all ⋆) -/
 inductive Ctxt where
   | nil 
-  | cons : Ctxt → Kind → Ctxt
+  | snoc : Ctxt → Kind → Ctxt
   deriving BEq, DecidableEq, Repr
 
 namespace Ctxt 
   notation "Ø" => Ctxt.nil
-  infixl:100 " ,⋆ " => Ctxt.cons
+  infixl:100 " ,⋆ " => Ctxt.snoc
+  
+  @[reducible]
+  def extend : Ctxt → Ctxt → Ctxt
+    | .nil, Δ => Δ
+    | .snoc Δ' k, Δ => .snoc (Δ'.extend Δ) k
+
 end Ctxt
 open Ctxt
 
