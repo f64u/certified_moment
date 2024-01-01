@@ -5,11 +5,11 @@ import «TypedAssembly».Common.Rent
 inductive Typ    : Ctxt → Kind → Type where
   | var {j}      : Δ ∋⋆ j → Typ Δ j
   | int          : Typ Δ ⋆
-  | unit         : Typ Δ ⋆ -- aka, an empty tuple
+  | unit         : Typ Δ ⋆ -- aka, an empty product 
   | arrow        : Typ Δ ⋆ → Typ Δ ⋆ → Typ Δ ⋆
   | prod         : Typ Δ ⋆ → Typ Δ ⋆ → Typ Δ ⋆
   | for_all {j}  : Typ (Δ ,⋆ j) ⋆ → Typ Δ ⋆
-  deriving BEq, DecidableEq, Repr
+  deriving BEq, DecidableEq
 
 namespace Typ
   infixl:90 " ⊢F⋆ " => Typ
@@ -38,8 +38,22 @@ namespace Typ
 
   example : Ø ,⋆ ⋆ ,⋆ ⋆ ,⋆ ⋆ ⊢F⋆ ⋆ := f⋆⟪ ♯2 ⟫
   def polyidt : Δ ⊢F⋆ ⋆ := f⋆⟪ ∀. ♯0 → ♯0 ⟫
+
+  def repr : Typ Δ k → String
+  | .var x => Lookupt.repr x
+  | .int => "int"
+  | .unit => "()"
+  | .arrow t₁ t₂ => s!"({repr t₁} → {repr t₂})"
+  | .prod t₁ t₂ => s!"({repr t₁} × {repr t₂})"
+  | .for_all t => s!"(∀. {repr t})"
 end Typ
 open Typ
+
+instance : Repr (Δ ⊢F⋆ k) where
+  reprPrec t _ := t.repr
+
+instance : ToString (Δ ⊢F⋆ k) where
+  toString := repr
  
 /-- renτ takes a Renτ and a typ and applies it to that typ,
     essentially moving it from one typing ctxt to another. -/

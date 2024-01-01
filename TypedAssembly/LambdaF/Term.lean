@@ -18,7 +18,6 @@ inductive Term : {Δ : Ctxt} → Ctx Δ → Δ ⊢F⋆ ⋆ → Type where
   | fst  {Γ : Ctx Δ} : Term Γ f⋆⟪ !t₁ × !t₂ ⟫ → Term Γ t₁
   | snd  {Γ : Ctx Δ} : Term Γ f⋆⟪ !t₁ × !t₂ ⟫ → Term Γ t₂
   | if0  {Γ : Ctx Δ} {t : Δ ⊢F⋆ ⋆} : Term Γ .int → Term Γ t → Term Γ t → Term Γ t
-  deriving Repr
 
 namespace Term 
   notation:50 Γ " ⊢F " t => Term Γ t
@@ -41,7 +40,7 @@ namespace Term
   syntax " λ. " trm : trm
   syntax trm trm : trm
   syntax " Λ. " trm : trm
-  syntax trm "[ " typ " ] " : trm
+  syntax trm "[ " typf " ] " : trm
   syntax:20 trm:20 " + " trm:21 : trm
   syntax:20 trm:20 " - " trm:21 : trm
   syntax:30 trm:30 " * " trm:31 : trm
@@ -73,8 +72,21 @@ namespace Term
     | `( f⟪ if0 ($e₁, $e₂, $e₃) ⟫ ) => `(Term.if0 f⟪ $e₁ ⟫ f⟪ $e₂ ⟫ f⟪ $e₃ ⟫ )
 
     | `( f⟪ ( $e ) ⟫ ) => `(f⟪ $e ⟫) 
+
+    def repr : (Γ ⊢F t) → String
+      | .int i => i.repr
+      | .unit => "()"
+      | .var x => x.repr
+
+      | .fix e => s!"(λ. {e.repr})"
+      | .app e₁ e₂ => s!"{e₁.repr} {e₂.repr}"
+
+      | _ => "in progress"
 end Term
 open Term
+
+instance : Repr (Γ ⊢F t) where
+  reprPrec e _ := e.repr
 
 namespace Examples 
   def fact :  ∅ ⊢F f⋆⟪ int → int ⟫ :=
@@ -101,7 +113,7 @@ namespace Examples
     f⟪ (!polyid)[int] ⟫
 
   def twice : ∅ ⊢F f⋆⟪ ∀. (♯0 → ♯0) → ♯0 → ♯0 ⟫ := 
-    f⟪ Λ. λ. #1 #1 #0 ⟫ 
+    f⟪ Λ. λ. λ. #2 #2 #0 ⟫ 
 end Examples
 
 def conv_ent {Δ Γ} {t₁ t₂ : Δ ⊢F⋆ ⋆} : t₁ = t₂ → (Γ ⊢F t₁) → Γ ⊢F t₂

@@ -16,8 +16,8 @@ namespace Typ
   syntax " int " : typk
   syntax "()" : typk
   syntax:50 typk:50 " × " typk:51 : typk
-  syntax:20 ("∀ " " [ " term "].")? "( " (typk)? ") → void" : typk
-  syntax:10 " () " " → " " void" : typk
+  syntax:20 ("∀" "[" term "].")? "(" typk ")" "→" "void" : typk
+  syntax:20 ("∀" "[" term "].")? "()" "→" "void" : typk
   syntax " k⋆⟪ " typk " ⟫ " : term
 
   syntax " ( " typk " ) " : typk
@@ -28,7 +28,8 @@ namespace Typ
   | `( k⋆⟪ () ⟫ ) => `(Typ.unit)
   | `( k⋆⟪ ♯$n ⟫ ) => `(Typ.var (by get_elem $n))
   | `( k⋆⟪ ∀[$c].($t) → void ⟫ ) => `(Typ.for_all $c k⋆⟪ $t ⟫)
-  | `( k⋆⟪ ($t) → void ⟫ ) => `(Typ.for_all Ø k⋆⟪$t⟫)
+  | `( k⋆⟪ ∀[$c].() → void ⟫ ) => `(Typ.for_all $c .unit)
+  | `( k⋆⟪ ($t) → void ⟫ ) => `(k⋆⟪ ∀[Ø]. ($t) → void ⟫)
   | `( k⋆⟪ () → void ⟫ ) => `(Typ.for_all Ø .unit)
   | `( k⋆⟪ $t₁ × $t₂ ⟫ ) => `(Typ.prod k⋆⟪ $t₁ ⟫ k⋆⟪ $t₂ ⟫)
   | `( k⋆⟪ ( $t ) ⟫ ) => `(k⋆⟪ $t ⟫)
@@ -42,6 +43,7 @@ namespace Typ
   example : Ø                ⊢K⋆ ⋆ := k⋆⟪ () → void ⟫
   example : Ø                ⊢K⋆ ⋆ := k⋆⟪ (int × int × int) → void ⟫
   example : Ø ,⋆ ⋆           ⊢K⋆ ⋆ := k⋆⟪ ∀[Ø ,⋆ ⋆].(♯1 × int) → void ⟫
+  example : Ø                ⊢K⋆ ⋆ := k⋆⟪ ∀[Ø].() → void ⟫
 
   example : k⋆⟪ (()) → void ⟫ =
            (k⋆⟪  ()  → void ⟫ : Δ ⊢K⋆ ⋆) := rfl

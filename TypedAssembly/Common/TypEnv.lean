@@ -14,7 +14,7 @@ namespace Ctxt
   @[reducible]
   def extend : Ctxt → Ctxt → Ctxt
     | .nil, Δ => Δ
-    | .snoc Δ' k, Δ => .snoc (Δ'.extend Δ) k
+    | .snoc Δ' k, Δ => (Δ'.extend Δ).snoc k
 
 end Ctxt
 open Ctxt
@@ -23,7 +23,8 @@ open Ctxt
 inductive Lookupt : Ctxt → Kind → Type where
   | here  {Δ j}   : Lookupt (Δ ,⋆ j) j
   | there {Δ j k} : Lookupt Δ j → Lookupt (Δ ,⋆ k) j
-  deriving BEq, DecidableEq, Repr
+  deriving BEq, DecidableEq
+
 
 namespace Lookupt 
   infixl:90 " ∋⋆ " => Lookupt
@@ -33,6 +34,15 @@ namespace Lookupt
   | 0 => `(tactic| exact Lookupt.here)
   | n+1 => `(tactic| apply Lookupt.there; get_elem $(Lean.quote n))
 
+  def toNat : Δ ∋⋆ k → Nat 
+    | .here => 0
+    | .there x => x.toNat + 1
+
+  def repr (x : Δ ∋⋆ k) : String := s!"♯{x.toNat}"
+
 end Lookupt
 open Lookupt
+
+instance : Repr (Lookupt Δ k) where
+  reprPrec x _ := s!"♯{x.toNat}"
 

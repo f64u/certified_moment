@@ -2,7 +2,7 @@ import «TypedAssembly».LambdaF.Term
 
 inductive Value : {Γ : Ctx Δ} → {t : Δ ⊢F⋆ ⋆} → (Γ ⊢F t) → Prop where
   | v_int  : Value (.int i)
-  | v_unit  : Value .unit
+  | v_unit : Value .unit
   | v_fix  : Value (.fix e)
   | v_Λ    : Value e → Value (.Λ e)
   | v_pair : Value e₁ → Value e₂ → Value (.pair e₁ e₂)
@@ -17,8 +17,8 @@ inductive Step : {Δ : Ctxt} → {Γ : Ctx Δ} → {t : Δ ⊢F⋆ ⋆} → (Γ 
   | sub_exec   : Value e → Step (.sub (.Λ e) t) (e⋆[t])
   | sub_steps  : Step e e' → Step (.sub e t) (.sub e' t)
 
-  | prim_exec  : Step (.prim (.int n₁) p (.int n₂)) (.int (interp p n₁ n₂))
-  | prim_right : Step b b' → Step (.prim (.int n) p b) (.prim (.int n) p b')
+  | prim_exec  : Step (.prim (.int i₁) p (.int i₂)) (.int (interp p i₁ i₂))
+  | prim_right : Step b b' → Step (.prim (.int i) p b) (.prim (.int i) p b')
   | prim_left  : Step a a' → Step (.prim a p b) (.prim a' p b)
   
   | pair_left  : Step a a' → Step f⟪ (!a, !b) ⟫ f⟪ (!a', !b) ⟫
@@ -134,3 +134,42 @@ example : f⟪ !intid 6 ⟫ ==>* f⟪ 6 ⟫ := by
   · simp [subs_one, conv_ent, subs]
     constructor
 
+open Examples in
+example : f⟪ ((!twice)[int] !intid) 6 ⟫ ==>* f⟪ 6 ⟫ := by
+  unfold intid
+  unfold twice
+  unfold polyid
+  constructor
+  · apply Step.app_left
+    · apply Step.app_left
+      · apply Step.sub_exec
+        constructor
+  · constructor
+    · apply Step.app_left
+      · apply Step.app_right
+        simp [tsubs_one, subs]
+        constructor
+        constructor
+        constructor
+    · constructor
+      · apply Step.app_left
+        · apply Step.app_exec
+          simp [tsubs_one, subs]
+          constructor
+      · simp [subs_one, conv_ent, subs]
+        constructor
+        · apply Step.app_exec
+          constructor
+        · simp [subs_one, conv_ent, subs]
+          constructor
+          · apply Step.app_right
+            constructor
+            · apply Step.app_exec
+              constructor
+          · constructor
+            · apply Step.app_exec
+              simp [subs_one, conv_ent, subs]
+              constructor
+            · simp_all!
+              simp [subs_one, conv_ent, subs]
+              apply MultiStep.refl
